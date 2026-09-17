@@ -30,6 +30,7 @@ import {
   isAppAlreadyInstalled,
   downloadAndroidLauncherPackage,
 } from '../services/shareQrService';
+import pwaWebApkBanner from '../assets/images/pet_apparel_pwa_1789670605527.jpg';
 
 interface ShareQrModalProps {
   isOpen: boolean;
@@ -392,6 +393,64 @@ export const ShareQrModal: React.FC<ShareQrModalProps> = ({
           {/* TAB 2: COMPARTIR COMO APK (ANDROID) */}
           {activeTab === 'apk' && (
             <div className="space-y-5">
+              {/* Master Promotional Banner: Artisan Pet Clothing & PWA / WebAPK */}
+              <div className="relative rounded-3xl overflow-hidden border-2 border-emerald-400/50 shadow-xl bg-slate-950 group">
+                <div className="relative h-48 sm:h-56 w-full overflow-hidden">
+                  <img
+                    src={pwaWebApkBanner}
+                    alt="Banner Promocional: Ropa para Mascotas Artesanal en Taller Rengo - PWA WebAPK"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 select-none"
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* Subtle Gradient Overlays for optimal text contrast */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-900/30" />
+                  <div className="absolute inset-0 bg-radial-at-t from-transparent via-black/20 to-black/70" />
+
+                  {/* Top Badges */}
+                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-slate-950" />
+                        Confección Artesanal a la Medida
+                      </span>
+                      <span className="bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
+                        App Móvil PWA &amp; WebAPK
+                      </span>
+                    </div>
+                    <span className="bg-slate-900/80 backdrop-blur-md text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-400/30 hidden sm:inline-flex items-center gap-1">
+                      <span>🧵 Taller Rengo, Chile</span>
+                    </span>
+                  </div>
+
+                  {/* Bottom Text & Pitch */}
+                  <div className="absolute bottom-3 left-3 right-3 text-white space-y-1">
+                    <h3 className="text-base sm:text-xl font-black text-white tracking-tight leading-snug drop-shadow-md flex items-center gap-2">
+                      <span>Ropa para Mascotas Artesanal en tu Celular</span>
+                      <span className="text-amber-400">🐾</span>
+                    </h3>
+                    <p className="text-xs text-slate-200 font-medium line-clamp-2 max-w-xl drop-shadow-sm">
+                      Lleva el taller de costura personalizado en tu bolsillo: suéteres térmicos, capas impermeables y arneses ergonómicos con calce exacto para Yorkshire, Chihuahuas, Galgos y más.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Banner Footer Micro-Features */}
+                <div className="bg-slate-900/95 border-t border-emerald-500/30 px-4 py-2.5 grid grid-cols-3 gap-2 text-center text-[10px] sm:text-[11px] font-bold text-emerald-200">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>⚡</span>
+                    <span className="truncate">Instalación en 1 Clic</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1 border-x border-slate-800 px-1">
+                    <span>📶</span>
+                    <span className="truncate">Funciona Sin Conexión</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1 text-amber-300">
+                    <span>🔔</span>
+                    <span className="truncate">Alertas de Despacho</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Highlight Card: WebAPK Android Technology */}
               <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 text-white rounded-2xl p-5 border-2 border-emerald-500/40 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">

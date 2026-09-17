@@ -287,6 +287,9 @@ export interface MeasurementAnalysis {
   hasWarnings: boolean;
   isUnusual: boolean;
   status: 'optimal' | 'notice' | 'unusual_alert' | 'invalid_error';
+  compatibilityScore: number;
+  riskLevel: 'low' | 'moderate' | 'high';
+  unusualFields: Array<'neck' | 'chest' | 'bodyLength' | 'proportion'>;
   issues: MeasurementIssue[];
   benchmark: BreedBenchmark;
   enteredCm: { neck: number; chest: number; bodyLength: number };
@@ -297,6 +300,7 @@ export interface MeasurementAnalysis {
   };
   suggestedStandardSize: string;
   summaryMessage: string;
+  tailorRecommendation: string;
 }
 
 /**
@@ -480,16 +484,44 @@ export function analyzePetMeasurements(params: {
   const hasWarnings = issues.some((i) => i.severity === 'warning');
   const isUnusual = issues.length > 0;
 
+  // Calculate intelligent compatibility score (0-100)
+  let score = 100;
+  if (hasErrors) {
+    score -= 50;
+  }
+  issues.forEach((issue) => {
+    if (issue.severity === 'alert') score -= 25;
+    else if (issue.severity === 'warning') score -= 15;
+  });
+  const compatibilityScore = Math.max(15, Math.min(100, score));
+
+  // Risk level
+  let riskLevel: 'low' | 'moderate' | 'high' = 'low';
+  if (hasErrors || compatibilityScore < 60) {
+    riskLevel = 'high';
+  } else if (hasWarnings || compatibilityScore < 85) {
+    riskLevel = 'moderate';
+  }
+
+  // Identify which specific fields are unusual
+  const unusualFieldsSet = new Set<'neck' | 'chest' | 'bodyLength' | 'proportion'>();
+  issues.forEach((i) => unusualFieldsSet.add(i.field));
+  const unusualFields = Array.from(unusualFieldsSet);
+
   let status: MeasurementAnalysis['status'] = 'optimal';
   if (hasErrors) status = 'invalid_error';
   else if (hasWarnings) status = 'unusual_alert';
   else if (issues.length > 0) status = 'notice';
 
-  let summaryMessage = '✅ Medidas perfectamente coherentes con las proporciones estándar.';
+  let summaryMessage = '✅ Medidas perfectamente coherentes con las proporciones estándar de ' + benchmark.name + '.';
+  let tailorRecommendation = benchmark.tailorAdvice;
+
   if (hasErrors) {
-    summaryMessage = '⚠️ Se detectaron incoherencias anatómicas o medidas fuera de rango que requieren revisión.';
+    summaryMessage = '⚠️ Se detectaron incoherencias anatómicas críticas (ej. pecho menor a cuello) que requieren corrección.';
+    tailorRecommendation = 'Corrección requerida: En el taller de Rengo no podemos cortar una pechera con contorno menor al cuello. Revisa si invertiste los números o aplica los valores promedio de ' + benchmark.name + '.';
   } else if (hasWarnings) {
-    summaryMessage = `ℹ️ Las medidas difieren del promedio típico para ${benchmark.name}. Puedes continuar confirmando que tu mascota tiene esta contextura especial.`;
+    summaryMessage = `ℹ️ Las medidas ingresadas difieren del estándar habitual para ${benchmark.name}. Revisa si tu mascota es especialmente delgada, robusta o de lomo largo.`;
+    tailorRecommendation = `Corte especial para ${benchmark.name}: Adaptaremos sisa y contorno torácico para asegurar holgura respiratoria de 2 cm y evitar que la prenda arrastre o quede corta.`;
   }
 
   const calcDiff = (val: number, typical: number) => {
@@ -502,6 +534,9 @@ export function analyzePetMeasurements(params: {
     hasWarnings,
     isUnusual,
     status,
+    compatibilityScore,
+    riskLevel,
+    unusualFields,
     issues,
     benchmark,
     enteredCm: { neck: neckCm, chest: chestCm, bodyLength: bodyLengthCm },
@@ -512,5 +547,6 @@ export function analyzePetMeasurements(params: {
     },
     suggestedStandardSize,
     summaryMessage,
+    tailorRecommendation,
   };
 }

@@ -1,15 +1,187 @@
 import React, { useState } from 'react';
-import { Copy, Check, Code, Search, Globe, Layers, ArrowUpRight, ShieldCheck, HelpCircle, CheckCircle2, Download, FileCode, Sparkles, Terminal } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  Code,
+  Search,
+  Globe,
+  Layers,
+  CheckCircle2,
+  Download,
+  FileCode,
+  Sparkles,
+  ExternalLink,
+  FileText,
+  Package,
+  Image as ImageIcon,
+  Flame,
+  ShieldCheck,
+  RefreshCw,
+  Cpu
+} from 'lucide-react';
+import { Product } from '../types';
+import { INITIAL_PRODUCTS } from '../data/mockData';
 
-export const GoogleSitesSEOToolkit: React.FC = () => {
+interface GoogleSitesSEOToolkitProps {
+  products?: Product[];
+}
+
+export const GoogleSitesSEOToolkit: React.FC<GoogleSitesSEOToolkitProps> = ({
+  products = INITIAL_PRODUCTS,
+}) => {
   const [copiedSitesCode, setCopiedSitesCode] = useState(false);
   const [copiedMetaCode, setCopiedMetaCode] = useState(false);
   const [copiedFullHtml, setCopiedFullHtml] = useState(false);
   const [copiedEmbedWidget, setCopiedEmbedWidget] = useState(false);
-  const [activeTab, setActiveTab] = useState<'iframe' | 'fullhtml' | 'meta' | 'widget'>('fullhtml');
+  const [copiedSitemap, setCopiedSitemap] = useState(false);
+  const [copiedRobots, setCopiedRobots] = useState(false);
+  const [activeTab, setActiveTab] = useState<'sitemap' | 'robots' | 'fullhtml' | 'iframe' | 'meta' | 'widget'>('sitemap');
   const [userVerificationCode, setUserVerificationCode] = useState('petsimona25_gsc_token_123456');
 
-  const currentAppUrl = typeof window !== 'undefined' ? window.location.origin : 'https://petsimona25.cl';
+  const defaultDomain = 'https://petsimona25.cl';
+  const currentAppUrl = typeof window !== 'undefined' ? window.location.origin : defaultDomain;
+  const [targetDomain, setTargetDomain] = useState<string>(defaultDomain);
+
+  const cleanDomain = (targetDomain.trim() || defaultDomain).replace(/\/+$/, '');
+  const todayDate = new Date().toISOString().split('T')[0];
+
+  const escapeXml = (unsafe: string) => {
+    return (unsafe || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+
+  // Generate dynamic Sitemap.xml containing core pages, categories, and all products with image metadata
+  const categoriesList = [
+    { slug: 'abrigos', title: 'Abrigos de Lana y Polar' },
+    { slug: 'impermeables', title: 'Impermeables y Chaquetas Reflectantes' },
+    { slug: 'camisetas', title: 'Camisetas y Poleras de Algodón' },
+    { slug: 'vestidos', title: 'Vestidos de Gala para Mascotas' },
+    { slug: 'pijamas', title: 'Pijamas Térmicas' },
+    { slug: 'accesorios', title: 'Bandanas y Moñas Personalizadas' },
+  ];
+
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Páginas Principales de petsimona25.cl -->
+  <url>
+    <loc>${cleanDomain}/</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#catalogo</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#medidas-form</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#tutorial-medidas</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#historia</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#blog</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#taller-mapa</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>${cleanDomain}/#suscripcion</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- Categorías de Productos -->
+${categoriesList
+  .map(
+    (c) => `  <url>
+    <loc>${cleanDomain}/#catalogo?categoria=${c.slug}</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>`
+  )
+  .join('\n')}
+
+  <!-- Catálogo de Artículos Confeccionados con Microdatos para Google Imágenes -->
+${products
+  .map((p) => {
+    const isAvail = p.inStock && (p.stock === undefined || p.stock > 0);
+    const priority = isAvail ? '0.90' : '0.60';
+    return `  <url>
+    <loc>${cleanDomain}/#catalogo?articulo=${encodeURIComponent(p.id)}</loc>
+    <lastmod>${todayDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>${priority}</priority>
+    <image:image>
+      <image:loc>${escapeXml(p.imageUrl)}</image:loc>
+      <image:title>${escapeXml(p.name)}</image:title>
+      <image:caption>${escapeXml(p.description)}</image:caption>
+    </image:image>
+  </url>`;
+  })
+  .join('\n')}
+</urlset>`;
+
+  // Generate robots.txt
+  const robotsTxt = `# robots.txt generado automáticamente por petsimona25.cl
+# Optimizado para Googlebot, Googlebot-Image y motores de búsqueda en Chile y el mundo
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /checkout
+Disallow: /cart
+
+# Directivas para Googlebot
+User-agent: Googlebot
+Allow: /
+Allow: /assets/
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.png
+Allow: /*.webp
+Allow: /*.svg
+
+# Directivas para rastreo de fotos de catálogo en Google Imágenes
+User-agent: Googlebot-Image
+Allow: /
+Allow: /assets/
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.png
+Allow: /*.webp
+
+# Ubicación del archivo Sitemap XML oficial
+Sitemap: ${cleanDomain}/sitemap.xml
+`;
 
   const googleSitesEmbedHtml = `<iframe 
   src="${currentAppUrl}" 
@@ -35,7 +207,7 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
     <meta name="keywords" content="petsimona25, petsimona25.cl, #petsimona25, ropa para perros Rengo, ropa mascotas a la medida Chile, confeccion canina Rengo, abrigos para perros, capas impermeables caninas" />
     <meta name="author" content="petsimona25.cl - Confección Artesanal" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://petsimona25.cl" />
+    <link rel="canonical" href="${cleanDomain}" />
     <meta name="theme-color" content="#d97706" />
     <meta name="google-site-verification" content="${userVerificationCode}" />
 
@@ -43,7 +215,7 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
     <meta property="og:site_name" content="petsimona25.cl" />
     <meta property="og:title" content="petsimona25.cl | Ropa para Mascotas a la Medida en Rengo, Chile" />
     <meta property="og:description" content="Confección artesanal eco-sustentable con telas reutilizables para perros chicos y medianos en Rengo. Envíos a todo Chile." />
-    <meta property="og:url" content="https://petsimona25.cl" />
+    <meta property="og:url" content="${cleanDomain}" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=1200" />
 
@@ -54,7 +226,7 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
       "@type": "ClothingStore",
       "name": "petsimona25",
       "legalName": "petsimona25.cl Confección Artesanal",
-      "url": "https://petsimona25.cl",
+      "url": "${cleanDomain}",
       "telephone": "+56972374764",
       "priceRange": "$$",
       "currenciesAccepted": "CLP",
@@ -117,11 +289,47 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
 
   const miniWidgetHtml = `<!-- Widget Flotante de Pedidos a la Medida petsimona25.cl -->
 <div id="petsimona25-widget" style="position:fixed; bottom:20px; right:20px; z-index:99999; font-family:system-ui, -apple-system, sans-serif;">
-  <a href="${currentAppUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg, #d97706, #b45309); color:white; padding:12px 18px; border-radius:50px; text-decoration:none; font-weight:800; font-size:13px; box-shadow:0 8px 20px rgba(217,119,6,0.4); border:2px solid #fef3c7;">
+  <a href="${cleanDomain}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; gap:10px; background:linear-gradient(135deg, #d97706, #b45309); color:white; padding:12px 18px; border-radius:50px; text-decoration:none; font-weight:800; font-size:13px; box-shadow:0 8px 20px rgba(217,119,6,0.4); border:2px solid #fef3c7;">
     <span style="font-size:18px;">🐾</span>
     <span>Ropa a la Medida | petsimona25.cl</span>
   </a>
 </div>`;
+
+  const handleCopySitemap = () => {
+    navigator.clipboard.writeText(sitemapXml);
+    setCopiedSitemap(true);
+    setTimeout(() => setCopiedSitemap(false), 2500);
+  };
+
+  const handleDownloadSitemap = () => {
+    const blob = new Blob([sitemapXml], { type: 'application/xml;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'sitemap.xml';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyRobots = () => {
+    navigator.clipboard.writeText(robotsTxt);
+    setCopiedRobots(true);
+    setTimeout(() => setCopiedRobots(false), 2500);
+  };
+
+  const handleDownloadRobots = () => {
+    const blob = new Blob([robotsTxt], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'robots.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handleCopySites = () => {
     navigator.clipboard.writeText(googleSitesEmbedHtml);
@@ -159,6 +367,8 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const totalUrlsInSitemap = 8 + categoriesList.length + products.length;
+
   return (
     <section id="google-sites-seo" className="py-16 bg-slate-900 text-white border-b-2 border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -166,17 +376,75 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-yellow-400 font-black text-xs uppercase tracking-wider">
             <Globe className="w-4 h-4 text-yellow-400" />
-            <span>Centro de Código HTML &amp; Posicionamiento #petsimona25</span>
+            <span>SEO Google Search Console &amp; Google Sites #petsimona25</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-            Código HTML Completo para tu Página Web 🌐
+            Indexación en Google, Sitemap.xml &amp; Robots.txt 🌐
           </h2>
           <p className="text-slate-300 text-sm leading-relaxed font-medium">
-            Aquí tienes todo el código <strong className="text-yellow-400 font-bold">HTML5 listo</strong> para alojar en cualquier servidor (cPanel, Google Sites, Netlify, Vercel, WordPress, Shopify o hosting propio) con todas las meta etiquetas SEO, microdatos Schema.org y catálogo responsivo.
+            Generador automático de <strong className="text-yellow-400 font-bold">Sitemap.xml</strong> enriquecido con imágenes de catálogo, archivo <strong className="text-yellow-400 font-bold">robots.txt</strong> y código HTML listo para Google Sites, Search Console y cualquier servidor web.
           </p>
         </div>
 
-        {/* Master HTML Code Generator & Exporter */}
+        {/* Global Configuration Bar: Domain and Summary Badges */}
+        <div className="bg-slate-800/90 border border-slate-700 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-yellow-400 flex items-center justify-center border border-amber-500/30 shrink-0">
+              <Globe className="w-5 h-5" />
+            </div>
+            <div className="space-y-1 w-full sm:w-auto">
+              <label htmlFor="target-domain-input" className="text-[11px] font-black uppercase tracking-wider text-slate-300 block">
+                Dominio Base para URLs del Sitemap:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="target-domain-input"
+                  type="url"
+                  value={targetDomain}
+                  onChange={(e) => setTargetDomain(e.target.value)}
+                  placeholder="https://petsimona25.cl"
+                  className="bg-slate-950 border border-slate-700 focus:border-yellow-400 rounded-xl px-3 py-1.5 text-xs text-yellow-300 font-mono w-full sm:w-72 outline-hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTargetDomain(defaultDomain)}
+                  className="text-[11px] text-slate-400 hover:text-white bg-slate-700/60 hover:bg-slate-700 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                  title="Restablecer a https://petsimona25.cl"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <div className="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+              <Package className="w-4 h-4 text-orange-400" />
+              <div className="text-left">
+                <span className="text-[10px] text-slate-400 block leading-none">Artículos Listados:</span>
+                <span className="text-xs font-black text-white">{products.length} productos</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+              <FileCode className="w-4 h-4 text-emerald-400" />
+              <div className="text-left">
+                <span className="text-[10px] text-slate-400 block leading-none">Total URLs Indexables:</span>
+                <span className="text-xs font-black text-emerald-300">{totalUrlsInSitemap} URLs</span>
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-yellow-400" />
+              <div className="text-left">
+                <span className="text-[10px] text-slate-400 block leading-none">Microdatos Google Fotos:</span>
+                <span className="text-xs font-black text-yellow-300">100% Incluidas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Master Code Generator & Tabs */}
         <div className="bg-slate-800/90 rounded-3xl p-6 sm:p-8 border-2 border-amber-500/50 shadow-2xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700 pb-5">
             <div className="flex items-center gap-3">
@@ -185,100 +453,272 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-xl font-black text-white flex items-center gap-2">
-                  <span>Exportador de Código HTML</span>
+                  <span>Generador de Archivos de Indexación SEO</span>
                   <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-amber-500/40">
-                    HTML5 Estándar
+                    Sitemap &amp; Robots
                   </span>
                 </h3>
                 <p className="text-xs text-slate-300 font-medium">
-                  Selecciona el formato que necesitas para copiarlo o descargarlo como archivo <code className="text-yellow-300">index.html</code>
+                  Copia o descarga los archivos necesarios para Google Search Console y el posicionamiento de tus productos
                 </p>
               </div>
             </div>
 
-            {/* Download Button */}
-            <button
-              onClick={handleDownloadIndexHtml}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-lg cursor-pointer shrink-0"
-            >
-              <Download className="w-4 h-4" />
-              <span>Descargar index.html Listo</span>
-            </button>
+            {/* Quick Live Preview Links */}
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href="/sitemap.xml"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-slate-900 hover:bg-slate-950 border border-slate-700 text-yellow-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all"
+                title="Ver el archivo sitemap.xml servido en vivo por este servidor"
+              >
+                <span>/sitemap.xml</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <a
+                href="/robots.txt"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-slate-900 hover:bg-slate-950 border border-slate-700 text-yellow-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all"
+                title="Ver el archivo robots.txt servido en vivo por este servidor"
+              >
+                <span>/robots.txt</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
 
           {/* Format Tabs */}
           <div className="flex flex-wrap gap-2 border-b border-slate-700 pb-3">
             <button
+              onClick={() => setActiveTab('sitemap')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'sitemap'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-102'
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <FileCode className="w-4 h-4" />
+              <span>1. Sitemap.xml Automático ({totalUrlsInSitemap} URLs)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('robots')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'robots'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-102'
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>2. Archivo robots.txt</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('fullhtml')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'fullhtml'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-102'
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
               }`}
             >
               <Code className="w-4 h-4" />
-              <span>1. Página Web Completa (index.html)</span>
+              <span>3. Página Web Completa (index.html)</span>
             </button>
 
             <button
               onClick={() => setActiveTab('iframe')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'iframe'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-102'
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>2. Código Iframe Google Sites (Embed)</span>
+              <span>4. Iframe Google Sites</span>
             </button>
 
             <button
               onClick={() => setActiveTab('meta')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'meta'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-102'
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
               }`}
             >
               <Search className="w-4 h-4" />
-              <span>3. Meta Tags &amp; Search Console</span>
+              <span>5. Meta Tags &amp; GSC</span>
             </button>
 
             <button
               onClick={() => setActiveTab('widget')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'widget'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  ? 'bg-amber-500 text-slate-950 shadow-md scale-102'
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
               }`}
             >
               <Sparkles className="w-4 h-4" />
-              <span>4. Botón Flotante Widget</span>
+              <span>6. Widget Flotante</span>
             </button>
           </div>
 
           {/* Active Tab View */}
           <div className="space-y-4">
+            {/* Sitemap.xml Tab */}
+            {activeTab === 'sitemap' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-200 font-bold">
+                      Sitemap XML estructurado según el protocolo oficial <code className="text-yellow-300">sitemaps.org</code> con soporte para Google Imágenes:
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Incluye automáticamente todos los <strong>{products.length} productos</strong> activos del catálogo con su última fecha de modificación, etiquetas <code className="text-yellow-300">&lt;image:image&gt;</code> y prioridades.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleCopySitemap}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      {copiedSitemap ? (
+                        <>
+                          <Check className="w-4 h-4 text-slate-950" /> ¡Copiado al Portapapeles!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" /> Copiar sitemap.xml
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadSitemap}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" /> Descargar sitemap.xml
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative bg-slate-950 p-4 rounded-2xl border-2 border-slate-700 font-mono text-xs text-yellow-300 max-h-80 overflow-y-auto shadow-inner">
+                  <pre className="whitespace-pre">{sitemapXml}</pre>
+                </div>
+
+                {/* Guide to submit to Google Search Console */}
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-700 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wide">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Cómo Enviar el Sitemap.xml a Google Search Console</span>
+                    </div>
+                    <a
+                      href="https://search.google.com/search-console/sitemaps"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-emerald-400 hover:text-emerald-300 underline font-bold flex items-center gap-1"
+                    >
+                      <span>Abrir panel de Sitemaps en GSC</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                  <ol className="text-xs text-slate-300 space-y-2 list-decimal list-inside font-medium leading-relaxed">
+                    <li>Accede a tu propiedad en <strong className="text-white">Google Search Console</strong>.</li>
+                    <li>En el menú de la izquierda, haz clic en <strong className="text-amber-300">"Sitemaps"</strong> (en la sección de Indexación).</li>
+                    <li>En el campo "Añadir un nuevo sitemap", escribe exactamente: <code className="text-yellow-300 bg-slate-950 px-2 py-0.5 rounded font-mono font-bold">sitemap.xml</code></li>
+                    <li>Presiona el botón <strong className="text-emerald-400">Enviar</strong>. Google procesará el archivo y te mostrará el estado "Correcto" con el número de páginas e imágenes descubiertas.</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            {/* Robots.txt Tab */}
+            {activeTab === 'robots' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-200 font-bold">
+                      Archivo <code className="text-yellow-300">robots.txt</code> con permisos para rastreadores de Google:
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Permite que Googlebot rastree el catálogo y Googlebot-Image descargue e indexe las fotos de prendas, vinculando la ubicación del sitemap.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleCopyRobots}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      {copiedRobots ? (
+                        <>
+                          <Check className="w-4 h-4 text-slate-950" /> ¡Copiado al Portapapeles!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" /> Copiar robots.txt
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadRobots}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" /> Descargar robots.txt
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative bg-slate-950 p-4 rounded-2xl border-2 border-slate-700 font-mono text-xs text-yellow-300 max-h-80 overflow-y-auto shadow-inner">
+                  <pre className="whitespace-pre">{robotsTxt}</pre>
+                </div>
+
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-700 space-y-2 text-xs text-slate-300 font-medium">
+                  <div className="text-amber-400 font-black uppercase text-xs flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Dónde Alojar robots.txt</span>
+                  </div>
+                  <p>
+                    Este archivo debe estar ubicado en la raíz de tu dominio público: <code className="text-yellow-300 bg-slate-950 px-2 py-0.5 rounded font-mono font-bold">{cleanDomain}/robots.txt</code>. Si utilizas el hosting actual o un servidor Node/cPanel, este proyecto ya lo expone directamente en la ruta raíz.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Full HTML Tab */}
             {activeTab === 'fullhtml' && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <p className="text-xs text-slate-300 font-medium">
                     Código fuente completo en un solo archivo con diseño responsivo, metaetiquetas para redes sociales, microdatos para Google y la aplicación integrada:
                   </p>
-                  <button
-                    onClick={handleCopyFullHtml}
-                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer shrink-0"
-                  >
-                    {copiedFullHtml ? (
-                      <>
-                        <Check className="w-4 h-4 text-slate-950" /> Copiado al portapapeles
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" /> Copiar Todo el Código HTML
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleCopyFullHtml}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      {copiedFullHtml ? (
+                        <>
+                          <Check className="w-4 h-4 text-slate-950" /> Copiado al portapapeles
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" /> Copiar Todo el Código HTML
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadIndexHtml}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" /> Descargar index.html
+                    </button>
+                  </div>
                 </div>
 
                 <div className="relative bg-slate-950 p-4 rounded-2xl border-2 border-slate-700 font-mono text-xs text-amber-300 max-h-80 overflow-y-auto">
@@ -287,6 +727,7 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
               </div>
             )}
 
+            {/* Iframe Tab */}
             {activeTab === 'iframe' && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -330,13 +771,15 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
               </div>
             )}
 
+            {/* Meta Tags Tab */}
             {activeTab === 'meta' && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-300 uppercase block">
+                  <label htmlFor="gsc-token-input" className="text-xs font-black text-slate-300 uppercase block">
                     Tu código de verificación de Google Search Console:
                   </label>
                   <input
+                    id="gsc-token-input"
                     type="text"
                     value={userVerificationCode}
                     onChange={(e) => setUserVerificationCode(e.target.value)}
@@ -369,6 +812,7 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
               </div>
             )}
 
+            {/* Widget Tab */}
             {activeTab === 'widget' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -531,5 +975,3 @@ export const GoogleSitesSEOToolkit: React.FC = () => {
     </section>
   );
 };
-
-

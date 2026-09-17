@@ -27,6 +27,7 @@ import {
   subscribePwaInstallAvailability,
   promptPwaInstall,
 } from '../services/shareQrService';
+import pwaWebApkBanner from '../assets/images/pwa_webapk_banner_1789667892724.jpg';
 
 interface TopQrScannerProps {
   onOpenFullModal?: (tab?: 'qr' | 'apk') => void;
@@ -375,6 +376,59 @@ export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) =
                       <span>Ampliar</span>
                     </button>
                   )}
+                </div>
+
+                {/* Promotional Banner Card for Handcrafted Pet Clothing & PWA / WebAPK */}
+                <div
+                  onClick={() => onOpenFullModal?.('apk')}
+                  className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/40 bg-slate-900/90 hover:border-emerald-400 transition-all cursor-pointer group shadow-lg"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onOpenFullModal?.('apk');
+                    }
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row items-center gap-3 p-3">
+                    <div className="w-full sm:w-28 h-20 sm:h-20 rounded-xl overflow-hidden shrink-0 border border-emerald-400/40 relative shadow-sm">
+                      <img
+                        src={pwaWebApkBanner}
+                        alt="Ropa de mascotas artesanal banner promocional PWA WebAPK"
+                        className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500 select-none"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                      <span className="absolute bottom-1 left-1.5 text-[9px] bg-emerald-600 text-white font-black px-1.5 py-0.2 rounded shadow">
+                        WebAPK
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1 text-left">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-amber-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Confección Artesanal
+                        </span>
+                        <span className="text-[10px] text-emerald-300 font-bold">
+                          • Rengo, Chile
+                        </span>
+                      </div>
+                      <h4 className="text-xs sm:text-sm font-black text-white group-hover:text-yellow-300 transition-colors truncate">
+                        Instala la App Oficial de Ropa para Mascotas
+                      </h4>
+                      <p className="text-[11px] text-slate-300 line-clamp-1">
+                        Prendas a medida, cálculo ergonómico por raza y notificaciones de despacho directo en tu Android.
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 self-end sm:self-center">
+                      <span className="bg-gradient-to-r from-emerald-500 to-teal-500 group-hover:from-emerald-400 group-hover:to-teal-400 text-slate-950 font-black text-[11px] px-3 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-slate-950" />
+                        <span>Abrir Instalador</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Android / iPhone quick tips */}

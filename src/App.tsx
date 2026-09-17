@@ -26,6 +26,7 @@ import { EditProductModal } from './components/EditProductModal';
 import { ShipmentTrackingModal } from './components/ShipmentTrackingModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { WebPushPermissionBanner } from './components/WebPushPermissionBanner';
+import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { BrandLogoModal } from './components/BrandLogoModal';
 import { ShareQrModal } from './components/ShareQrModal';
@@ -547,6 +548,9 @@ export default function App() {
 
       {/* Non-intrusive Web Push Permission Banner */}
       <WebPushPermissionBanner />
+
+      {/* Handcrafted Pet Fashion PWA / WebAPK Promotional Install Banner */}
+      <PwaInstallBanner onOpenApkModal={() => handleOpenShareQr('apk')} />
 
       {/* Floating Notification Toast */}
       {toastMessage && (

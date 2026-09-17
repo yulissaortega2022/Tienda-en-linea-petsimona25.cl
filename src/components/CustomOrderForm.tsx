@@ -25,6 +25,9 @@ import {
   RefreshCw,
   Search,
   Scissors,
+  FileText,
+  MessageCircle,
+  Mail,
 } from 'lucide-react';
 import { COMMON_BREEDS } from '../data/mockData';
 import { CustomOrderItem } from '../types';
@@ -35,6 +38,11 @@ import {
   MeasurementAnalysis,
   BreedBenchmark,
 } from '../data/breedSizeStandards';
+import {
+  generatePurchaseValidationReport,
+  PurchaseValidationReport,
+} from '../services/purchaseValidationService';
+import { PurchaseValidationModal } from './PurchaseValidationModal';
 
 interface CustomOrderFormProps {
   onAddToCart: (customItem: CustomOrderItem) => void;
@@ -89,6 +97,8 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
   } | null>(null);
 
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [validationReport, setValidationReport] = useState<PurchaseValidationReport | null>(null);
+  const [showValidationReportModal, setShowValidationReportModal] = useState(false);
 
   // Real-time analysis against standard reference tables
   const measurementAnalysis: MeasurementAnalysis | null = useMemo(() => {
@@ -279,10 +289,7 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
     }
   };
 
-  const executeAddToCart = () => {
-    const finalBreed = breed === 'Otra Raza (Especificar)' ? customBreed.trim() || 'Raza Mixta' : breed;
-
-    // Price calculation logic (in CLP)
+  const currentPrice = useMemo(() => {
     let basePrice = 24900;
     if (garmentType.includes('Impermeable')) {
       basePrice = 24900;
@@ -299,6 +306,46 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
     if (embroideryText.trim()) {
       basePrice += 4000; // Embroidery fee in CLP
     }
+    return basePrice;
+  }, [garmentType, embroideryText]);
+
+  const handleOpenValidationReport = () => {
+    const finalBreed = breed === 'Otra Raza (Especificar)' ? customBreed.trim() || 'Raza Mixta' : breed;
+    const analysis = measurementAnalysis || analyzePetMeasurements({
+      neck,
+      chest,
+      bodyLength,
+      unit,
+      breed: finalBreed,
+      petType,
+    });
+
+    const rep = generatePurchaseValidationReport({
+      petName: petName.trim() || 'Mascota regalona',
+      petType,
+      breed: finalBreed,
+      garmentType,
+      fabricColor,
+      embroideryText: embroideryText.trim() || undefined,
+      specialNotes: specialNotes.trim() || undefined,
+      price: currentPrice,
+      neck: Number(neck) || 20,
+      chest: Number(chest) || 32,
+      bodyLength: Number(bodyLength) || 24,
+      unit,
+      analysis,
+      userConfirmedUnusual: confirmedUnusualMeasurements,
+    });
+
+    setValidationReport(rep);
+    setShowValidationReportModal(true);
+  };
+
+  const executeAddToCart = () => {
+    const finalBreed = breed === 'Otra Raza (Especificar)' ? customBreed.trim() || 'Raza Mixta' : breed;
+
+    // Price calculation logic (in CLP)
+    const basePrice = currentPrice;
 
     const calculatedSizeDescription = measurementAnalysis
       ? `A la Medida • ${measurementAnalysis.suggestedStandardSize}`
@@ -327,6 +374,27 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
       calculatedSize: calculatedSizeDescription,
       price: basePrice,
     };
+
+    // Auto generate purchase validation report so user can view or dispatch to WhatsApp/Email
+    if (measurementAnalysis) {
+      const rep = generatePurchaseValidationReport({
+        petName: petName.trim() || 'Mascota regalona',
+        petType,
+        breed: finalBreed,
+        garmentType,
+        fabricColor,
+        embroideryText: embroideryText.trim() || undefined,
+        specialNotes: specialNotes.trim() || undefined,
+        price: basePrice,
+        neck: Number(neck),
+        chest: Number(chest),
+        bodyLength: Number(bodyLength),
+        unit,
+        analysis: measurementAnalysis,
+        userConfirmedUnusual: confirmedUnusualMeasurements,
+      });
+      setValidationReport(rep);
+    }
 
     onAddToCart(customOrder);
     setAddedSuccess(true);
@@ -883,7 +951,65 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
 
               {/* REAL-TIME VALIDATION & REFERENCE ANALYSIS CARD */}
               {measurementAnalysis && (
-                <div className="pt-1">
+                <div className="pt-1 space-y-3">
+                  {/* Intelligent Breed Fit Score Bar & Validation Report Trigger */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 border-2 border-orange-200 shadow-xs space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-orange-600 shrink-0" />
+                        <span className="font-black text-xs sm:text-sm text-slate-900">
+                          Validación Inteligente de Calce • {measurementAnalysis.benchmark.name}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`text-xs font-black px-2.5 py-0.5 rounded-full shadow-2xs ${
+                            measurementAnalysis.compatibilityScore >= 85
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : measurementAnalysis.compatibilityScore >= 60
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : 'bg-red-100 text-red-800 border border-red-300'
+                          }`}
+                        >
+                          {measurementAnalysis.compatibilityScore}% • {
+                            measurementAnalysis.compatibilityScore >= 85
+                              ? 'Calce Seguro'
+                              : measurementAnalysis.compatibilityScore >= 60
+                              ? 'Medidas Inusuales'
+                              : 'Alerta Anatómica'
+                          }
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={handleOpenValidationReport}
+                          className="inline-flex items-center gap-1.5 text-xs font-black text-orange-950 bg-white hover:bg-orange-100 px-3 py-1.5 rounded-xl border border-orange-300 shadow-2xs transition-all active:scale-95"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-orange-600" />
+                          <span>Ficha de Validación (WhatsApp & Correo) 📋</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden shadow-inner">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          measurementAnalysis.compatibilityScore >= 85
+                            ? 'bg-emerald-500'
+                            : measurementAnalysis.compatibilityScore >= 60
+                            ? 'bg-amber-500'
+                            : 'bg-red-500'
+                        }`}
+                        style={{ width: `${measurementAnalysis.compatibilityScore}%` }}
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-700 font-medium leading-relaxed">
+                      {measurementAnalysis.summaryMessage}
+                    </p>
+                  </div>
+
                   {/* Case 1: Critical Error (e.g. Chest <= Neck) */}
                   {measurementAnalysis.hasErrors && (
                     <div className="p-4 rounded-2xl bg-red-50 border-2 border-red-400 text-red-950 space-y-3 animate-fade-in shadow-xs">
@@ -951,6 +1077,14 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
                           >
                             <Eye className="w-3.5 h-3.5" />
                             Ver Comparación Detallada con Tabla
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleOpenValidationReport}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black text-xs shadow-xs transition-transform active:scale-95"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            Ficha de Validación (WhatsApp & Correo) 📋
                           </button>
                           <button
                             type="button"
@@ -1134,44 +1268,76 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
               </div>
             </div>
 
-            {/* Submit CTA */}
-            <div className="pt-4 border-t-2 border-orange-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-xs text-slate-700">
-                <p className="font-black text-base text-slate-900">
-                  Total Confección a la Medida: $
-                  {((garmentType.includes('Impermeable')
-                    ? 24900
-                    : garmentType.includes('Abrigo')
-                    ? 28900
-                    : garmentType.includes('Vestido')
-                    ? 32900
-                    : garmentType.includes('Pijama')
-                    ? 18900
-                    : 14900) + (embroideryText.trim() ? 4000 : 0)).toLocaleString('es-CL')}{' '}
-                  CLP
-                  {embroideryText.trim() && ' (Incluye Bordado)'}
-                </p>
-                <p className="font-semibold text-slate-500">Tiempo de confección artesanal en Rengo: 2 a 3 días hábiles.</p>
+            {/* Submit CTA & Validation Report */}
+            <div className="pt-4 border-t-2 border-orange-100 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-xs text-slate-700">
+                  <p className="font-black text-base text-slate-900">
+                    Total Confección a la Medida: $
+                    {currentPrice.toLocaleString('es-CL')} CLP
+                    {embroideryText.trim() && ' (Incluye Bordado)'}
+                  </p>
+                  <p className="font-semibold text-slate-500">
+                    Tiempo de confección artesanal en Rengo: 2 a 3 días hábiles.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleOpenValidationReport}
+                    className="inline-flex items-center justify-center gap-2 font-black uppercase tracking-wider px-5 py-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-950 border-2 border-amber-300 transition-all text-xs active:scale-95 shadow-2xs"
+                    title="Generar Ficha Técnica y notificar a WhatsApp y Correo"
+                  >
+                    <FileText className="w-4 h-4 text-orange-600" />
+                    <span>Reporte de Validación 📋</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className={`inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest px-8 py-3.5 rounded-2xl shadow-md transition-all text-sm ${
+                      addedSuccess
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
+                    }`}
+                  >
+                    {addedSuccess ? (
+                      <>
+                        <Check className="w-5 h-5" /> ¡Agregado a tu Carrito!
+                      </>
+                    ) : (
+                      <>
+                        <PlusCircle className="w-5 h-5" /> Agregar Pedido a la Medida
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="submit"
-                className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 font-black uppercase tracking-widest px-8 py-4 rounded-2xl shadow-md transition-all text-sm ${
-                  addedSuccess
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-orange-500 hover:bg-orange-600 text-white active:scale-95'
-                }`}
-              >
-                {addedSuccess ? (
-                  <>
-                    <Check className="w-5 h-5" /> ¡Agregado a tu Carrito!
-                  </>
-                ) : (
-                  <>
-                    <PlusCircle className="w-5 h-5" /> Agregar Pedido a la Medida
-                  </>
-                )}
-              </button>
+              {/* Added Success Alert with direct validation dispatch shortcut */}
+              {addedSuccess && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-emerald-900">
+                        ¡Prenda a la medida agregada con éxito a tu carrito de compras!
+                      </p>
+                      <p className="text-[11px] text-emerald-800">
+                        Se generó tu Ficha Técnica de Validación para coordinar con el taller.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenValidationReport}
+                    className="shrink-0 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs flex items-center gap-1.5 shadow-2xs transition-transform active:scale-95"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Notificar por WhatsApp / Correo 📧</span>
+                  </button>
+                </div>
+              )}
             </div>
           </form>
         </div>
@@ -1349,6 +1515,18 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
               >
                 <RefreshCw className="w-3.5 h-3.5 text-orange-600" />
                 Aplicar medidas típicas de {measurementAnalysis.benchmark.name} ({measurementAnalysis.benchmark.neckCm.typical} / {measurementAnalysis.benchmark.chestCm.typical} / {measurementAnalysis.benchmark.lengthCm.typical} cm)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUnusualAlertModal(false);
+                  handleOpenValidationReport();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-black text-xs transition-colors border border-amber-300"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-700" />
+                Abrir Ficha de Validación Técnica (Notificar WhatsApp & Correo) 📋
               </button>
 
               <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
@@ -1574,6 +1752,27 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: FICHA Y REPORTE DE VALIDACIÓN DE COMPRA (WHATSAPP & CORREO 📧)   */}
+      {/* ========================================================================= */}
+      <PurchaseValidationModal
+        isOpen={showValidationReportModal}
+        onClose={() => setShowValidationReportModal(false)}
+        report={validationReport}
+        onConfirmAddToCart={() => {
+          setConfirmedUnusualMeasurements(true);
+          setShowValidationReportModal(false);
+          executeAddToCart();
+        }}
+        onModifyMeasurements={() => {
+          setShowValidationReportModal(false);
+          const el = document.getElementById('field-neck');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+        onApplyBreedTypical={handleApplySuggestedBreedValues}
+        onSwapNeckChest={handleSwapNeckAndChest}
+      />
     </section>
   );
 };

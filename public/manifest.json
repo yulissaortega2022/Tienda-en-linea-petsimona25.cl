@@ -45,5 +45,14 @@
     }
   ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/pwa_webapk_banner.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "petsimona25 - Ropa Artesanal para Mascotas a la Medida"
+    }
+  ]
 }
