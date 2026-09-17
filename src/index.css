@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(249, 115, 22, 0.75);
+  }
+}
+
+@keyframes trustShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite;
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}

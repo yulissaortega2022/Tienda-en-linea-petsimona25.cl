@@ -1,0 +1,8 @@
+{
+  "name": "Remix Pet Simona - Ropa para Mascota a la Medida",
+  "description": "Sitio web de ropa exclusiva para mascotas hecha a la medida con guía de medidas, carrito de compras, Mercado Pago, PayPal, suscripción y SEO para Google Sites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
