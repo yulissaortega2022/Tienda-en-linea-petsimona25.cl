@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Product, CartItem, PetMeasurements } from '../types';
 import { Star, PlusCircle, ShoppingBag, Sparkles, Filter, Check, Package, Ban, CheckCircle2, Edit3, Bell, BellRing, Flame, ShieldCheck, Zap, Tag, Mail, Scissors, Eye, CreditCard, ArrowRightLeft, Lock, FileSpreadsheet, Download, ExternalLink, Copy } from 'lucide-react';
 import { StockNotificationModal } from './StockNotificationModal';
+import { StockValidationAuditModal } from './StockValidationAuditModal';
 import {
   getStoredStockAlerts,
   isEmailSubscribedToProduct,
@@ -9,12 +10,14 @@ import {
 } from '../services/stockAlertService';
 import { generateOptimizedImageSEO, getProductImageAlt } from '../services/imageSeoService';
 import { exportProductsToGoogleSheetsCSV, copyProductsToClipboardForGoogleSheets, openNewGoogleSheet } from '../services/productExportService';
+import { validateProductStock } from '../services/stockValidationService';
 
 interface ProductCatalogProps {
   products: Product[];
   onAddToCart: (product: Product, selectedSize: string, customMeasurements?: PetMeasurements) => void;
   onOpenAddProductModal: () => void;
   onEditProduct?: (product: Product) => void;
+  onUpdateProductStock?: (productId: string, newStock: number, inStock: boolean) => void;
   onNotifyToast?: (msg: string) => void;
   currency: 'CLP' | 'USD' | 'MXN' | 'COP';
 }
@@ -24,6 +27,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onAddToCart,
   onOpenAddProductModal,
   onEditProduct,
+  onUpdateProductStock,
   onNotifyToast,
   currency,
 }) => {
@@ -31,6 +35,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [stockFilter, setStockFilter] = useState<'all' | 'available' | 'out_of_stock'>('all');
   const [sizeSelectionMap, setSizeSelectionMap] = useState<Record<string, string>>({});
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
+  const [isStockAuditModalOpen, setIsStockAuditModalOpen] = useState(false);
   
   // Stock Alert Modal State
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -189,6 +194,21 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 <ExternalLink className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIsStockAuditModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black uppercase tracking-wider px-4 py-3 rounded-2xl shadow-md transition-all active:scale-95 text-xs shrink-0 border border-amber-400 cursor-pointer"
+              title="Panel de Validación y Auditoría de Stock de Taller petsimona25"
+            >
+              <Package className="w-4 h-4 text-slate-950" />
+              <span>Validar Stock &amp; Inventario</span>
+              {products.filter((p) => !p.inStock || (p.stock !== undefined && p.stock <= 0)).length > 0 && (
+                <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                  {products.filter((p) => !p.inStock || (p.stock !== undefined && p.stock <= 0)).length}
+                </span>
+              )}
+            </button>
 
             <button
               onClick={onOpenAddProductModal}
@@ -644,6 +664,14 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               formElement.scrollIntoView({ behavior: 'smooth' });
             }
           }}
+        />
+
+        {/* Stock Validation & Audit Modal */}
+        <StockValidationAuditModal
+          isOpen={isStockAuditModalOpen}
+          onClose={() => setIsStockAuditModalOpen(false)}
+          products={products}
+          onUpdateProductStock={onUpdateProductStock}
         />
 
         {filteredProducts.length === 0 && (

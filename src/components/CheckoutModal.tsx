@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, ShieldCheck, DollarSign, Download, ArrowLeft, QrCode, CreditCard, Sparkles, Loader2, Truck, Leaf, Heart, Lock, Zap, Clock, ExternalLink, Building2, MessageSquare, ArrowRightLeft } from 'lucide-react';
-import { CartItem, CustomOrderItem, PaymentCredentials } from '../types';
+import { X, CheckCircle, ShieldCheck, DollarSign, Download, ArrowLeft, QrCode, CreditCard, Sparkles, Loader2, Truck, Leaf, Heart, Lock, Zap, Clock, ExternalLink, Building2, MessageSquare, ArrowRightLeft, AlertCircle, Ban } from 'lucide-react';
+import { CartItem, CustomOrderItem, PaymentCredentials, Product } from '../types';
 import { SHIPPING_ZONES, COURIERS } from './ShippingCalculator';
 import { CompletedOrder } from './OrderConfirmationBanner';
 import { createMercadoPagoPreference } from '../services/mercadoPagoService';
+import { validateCartStock, deductPurchasedStock } from '../services/stockValidationService';
 
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   cartItems: CartItem[];
   customOrders: CustomOrderItem[];
+  products?: Product[];
   totalPriceCop: number;
   currency: 'CLP' | 'USD' | 'MXN' | 'COP';
   paymentConfig: PaymentCredentials;
   onClearCart: () => void;
   onOrderSuccess?: (order: CompletedOrder) => void;
+  onStockDeducted?: (updatedProducts: Product[]) => void;
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -22,15 +25,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onClose,
   cartItems,
   customOrders,
+  products = [],
   totalPriceCop,
   currency,
   paymentConfig,
   onClearCart,
   onOrderSuccess,
+  onStockDeducted,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<'mercadopago' | 'transfer' | 'paypal'>('mercadopago');
   const [step, setStep] = useState<'review' | 'processing' | 'success'>('review');
   const [completedOrderData, setCompletedOrderData] = useState<CompletedOrder | null>(null);
+  const [stockErrorMessage, setStockErrorMessage] = useState<string | null>(null);
 
   // Customer info
   const [customerName, setCustomerName] = useState('');
@@ -65,9 +71,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    setStockErrorMessage(null);
+
     if (!customerName || !customerEmail || !shippingAddress) {
       alert('Por favor completa tus datos de envío.');
       return;
+    }
+
+    // Real-time stock validation check
+    if (products && products.length > 0 && cartItems.length > 0) {
+      const stockCheck = validateCartStock(cartItems, products);
+      if (!stockCheck.isValid) {
+        setStockErrorMessage(
+          stockCheck.warningSummary ||
+            'No se puede procesar el pago: uno o más artículos en tu carrito exceden el stock disponible.'
+        );
+        return;
+      }
     }
 
     setStep('processing');
@@ -119,6 +139,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     };
 
     setTimeout(() => {
+      // Deduct purchased catalog items from stock
+      if (products && products.length > 0 && cartItems.length > 0) {
+        const updated = deductPurchasedStock(cartItems, products);
+        if (onStockDeducted) {
+          onStockDeducted(updated);
+        }
+      }
+
       setCompletedOrderData(newOrder);
       setStep('success');
       onClearCart();
@@ -269,6 +297,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         {step === 'review' && (
           <form onSubmit={handlePay} className="space-y-6">
+            {/* Stock Validation Error Alert */}
+            {stockErrorMessage && (
+              <div className="p-4 bg-red-100 border-2 border-red-300 rounded-2xl text-red-900 text-xs font-bold space-y-1 animate-pulse">
+                <div className="flex items-center gap-2 text-red-800 uppercase font-black">
+                  <Ban className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>Validación de Stock Fallida</span>
+                </div>
+                <p>{stockErrorMessage}</p>
+                <p className="text-[11px] text-red-700">Por favor revisa o ajusta la cantidad en tu carrito para continuar con la compra.</p>
+              </div>
+            )}
+
             {/* Payment Method Selector */}
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-900 uppercase tracking-wider block">

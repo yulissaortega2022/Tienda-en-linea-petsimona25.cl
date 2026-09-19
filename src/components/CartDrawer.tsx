@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Tag, Sparkles, Check, AlertCircle, Ban, AlertTriangle, ShieldCheck, Zap, Lock, Truck } from 'lucide-react';
+import { X, Trash2, ShoppingBag, ArrowRight, Tag, Sparkles, Check, AlertCircle, Ban, AlertTriangle, ShieldCheck, Zap, Lock, Truck, Info } from 'lucide-react';
 import { CartItem, CustomOrderItem, PaymentCredentials, Product } from '../types';
 import { getProductImageAlt } from '../services/imageSeoService';
+import { validateCartStock } from '../services/stockValidationService';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -32,15 +33,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const [coupon, setCoupon] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
+  const [stockWarningToast, setStockWarningToast] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  // Real-time out-of-stock validation
-  const outOfStockItems = cartItems.filter((item) => {
-    const liveProduct = products.find((p) => p.id === item.product.id) || item.product;
-    return !liveProduct.inStock || (liveProduct.stock !== undefined && liveProduct.stock <= 0);
-  });
-  const hasOutOfStockItems = outOfStockItems.length > 0;
+  // Real-time stock validation using stockValidationService
+  const stockValidation = validateCartStock(cartItems, products);
+  const hasOutOfStockItems = stockValidation.hasOutOfStock;
+  const outOfStockItems = stockValidation.errors.filter((e) => e.status === 'out_of_stock');
 
   // Calculate totals
   const itemsSubtotal = cartItems.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
@@ -150,6 +150,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             ) : (
               <>
+                {/* Toast for Stock Warning */}
+                {stockWarningToast && (
+                  <div className="p-3 rounded-2xl bg-amber-100 border-2 border-amber-300 text-amber-950 text-xs font-bold flex items-center justify-between animate-fade-in shadow-xs">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      {stockWarningToast}
+                    </span>
+                    <button
+                      onClick={() => setStockWarningToast(null)}
+                      className="text-amber-800 hover:text-black p-1 text-xs font-black cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
                 {/* Out of Stock Top Warning Banner if any item is out of stock */}
                 {hasOutOfStockItems && (
                   <div className="p-3.5 rounded-2xl bg-red-100 border-2 border-red-300 text-red-900 text-xs font-bold space-y-1 animate-pulse">
@@ -277,9 +293,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                                   <button
                                     onClick={() => {
                                       if (liveProduct.stock !== undefined && item.quantity >= liveProduct.stock) {
-                                        alert(`Solo quedan ${liveProduct.stock} unidades en stock de este artículo.`);
+                                        setStockWarningToast(`Solo quedan ${liveProduct.stock} unidades disponibles en taller para "${liveProduct.name}".`);
                                         return;
                                       }
+                                      setStockWarningToast(null);
                                       onUpdateQuantity(item.id, 1);
                                     }}
                                     className="w-5 h-5 rounded-md bg-slate-100 text-slate-900 font-black text-xs flex items-center justify-center hover:bg-slate-200 cursor-pointer"

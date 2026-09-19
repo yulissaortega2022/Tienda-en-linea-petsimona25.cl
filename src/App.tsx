@@ -366,12 +366,66 @@ export default function App() {
     }
   };
 
+  const handleUpdateProductStockDirect = (productId: string, newStock: number, inStock: boolean) => {
+    let targetProduct: Product | undefined;
+    setProducts((prev) => {
+      const next = prev.map((p) => {
+        if (p.id === productId) {
+          const updated: Product = {
+            ...p,
+            stock: newStock,
+            inStock: inStock && newStock > 0,
+          };
+          targetProduct = updated;
+          fetch(`/api/products/${productId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(console.error);
+          return updated;
+        }
+        return p;
+      });
+      try {
+        localStorage.setItem('petsimona25_catalog_products', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    if (inStock && newStock > 0 && targetProduct) {
+      notifySubscribersProductRestocked(targetProduct, newStock).then((res) => {
+        if (res.notifiedCount > 0) {
+          showToast(`🎉 ¡Stock actualizado a ${newStock} un.! Se notificó por email automáticamente a ${res.notifiedCount} clientes.`);
+        } else {
+          showToast(`✓ Stock actualizado: ${newStock} unidades disponibles.`);
+        }
+      });
+    } else {
+      showToast('✓ Stock actualizado a 0 (Agotado)');
+    }
+  };
+
   // Cart operations
   const handleAddCatalogItemToCart = (
     product: Product,
     selectedSize: string,
     customMeasurements?: PetMeasurements
   ) => {
+    // Live Stock Validation Check
+    const liveProd = products.find((p) => p.id === product.id) || product;
+    if (!liveProd.inStock || (liveProd.stock !== undefined && liveProd.stock <= 0)) {
+      showToast(`⚠️ "${liveProd.name}" está temporalmente agotado. Puedes solicitarlo a la medida o suscribirte a la alerta.`);
+      return;
+    }
+
+    const existingItem = cartItems.find(
+      (item) => item.product.id === product.id && item.selectedSize === selectedSize
+    );
+    if (existingItem && liveProd.stock !== undefined && existingItem.quantity >= liveProd.stock) {
+      showToast(`⚠️ Solo quedan ${liveProd.stock} unidades en taller de "${liveProd.name}".`);
+      return;
+    }
+
     setCartItems((prev) => {
       const existingIndex = prev.findIndex(
         (item) => item.product.id === product.id && item.selectedSize === selectedSize
@@ -595,6 +649,8 @@ export default function App() {
           onAddToCart={handleAddCatalogItemToCart}
           onOpenAddProductModal={() => setIsAddProductOpen(true)}
           onEditProduct={(product) => setEditingProduct(product)}
+          onUpdateProductStock={handleUpdateProductStockDirect}
+          onNotifyToast={showToast}
           currency={currency}
         />
 
@@ -608,7 +664,7 @@ export default function App() {
         <GoogleBusinessReviewsSection />
 
         {/* Google Sites & Search Console Toolkit - "adaptado para Google sites y Google search console" */}
-        <GoogleSitesSEOToolkit />
+        <GoogleSitesSEOToolkit products={products} />
 
         {/* Social Media Bar - "@petsimona25 TikTok Instagram Facebook" */}
         <SocialMediaBar />
@@ -644,12 +700,20 @@ export default function App() {
         onClose={() => setIsCheckoutOpen(false)}
         cartItems={cartItems}
         customOrders={customOrders}
+        products={products}
         totalPriceCop={totalCartPriceCop}
         currency={currency}
         paymentConfig={paymentConfig}
         onClearCart={() => {
           setCartItems([]);
           setCustomOrders([]);
+        }}
+        onStockDeducted={(updated) => {
+          setProducts(updated);
+          try {
+            localStorage.setItem('petsimona25_catalog_products', JSON.stringify(updated));
+          } catch (e) {}
+          showToast('✓ Stock de taller actualizado automáticamente tras confirmación');
         }}
         onOrderSuccess={(order) => {
           setActiveCompletedOrder(order);
