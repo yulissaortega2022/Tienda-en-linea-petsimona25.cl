@@ -210,7 +210,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           <div className="text-[11px] text-slate-800 bg-white p-2.5 rounded-xl border-2 border-orange-200 space-y-0.5 font-mono font-medium">
                             <p>📐 Cuello: {ord.measurements.neck} {ord.measurements.unit} | Pecho: {ord.measurements.chest} {ord.measurements.unit}</p>
                             <p>📐 Largo: {ord.measurements.bodyLength} {ord.measurements.unit} | Tela: {ord.fabricColor}</p>
-                            {ord.embroideryText && <p className="text-orange-600 font-bold">🧵 Bordado: "{ord.embroideryText}"</p>}
+                            {ord.embroideryText && <p className="text-orange-600 font-bold">🎨 Estampado: "{ord.embroideryText}"</p>}
                           </div>
                         </div>
 

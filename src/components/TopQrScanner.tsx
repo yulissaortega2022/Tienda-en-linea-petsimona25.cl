@@ -17,6 +17,8 @@ import {
   Home,
   Truck,
   CheckCircle2,
+  Globe,
+  Sliders,
 } from 'lucide-react';
 import {
   SHARE_SECTIONS,
@@ -26,17 +28,29 @@ import {
   downloadBrandedQrImage,
   subscribePwaInstallAvailability,
   promptPwaInstall,
+  QR_SIZE_PRESETS,
+  getSavedQrSize,
+  setSavedQrSize,
 } from '../services/shareQrService';
+import { getActiveDomain, subscribeDomainChanges } from '../services/customDomainService';
 import pwaWebApkBanner from '../assets/images/pwa_webapk_banner_1789667892724.jpg';
 
 interface TopQrScannerProps {
   onOpenFullModal?: (tab?: 'qr' | 'apk') => void;
+  onOpenCustomDomain?: () => void;
+  onOpenVisualCatalog?: () => void;
 }
 
-export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) => {
+export const TopQrScanner: React.FC<TopQrScannerProps> = ({
+  onOpenFullModal,
+  onOpenCustomDomain,
+  onOpenVisualCatalog,
+}) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [selectedSectionId, setSelectedSectionId] = useState<string>('home');
   const [useOfficialDomain, setUseOfficialDomain] = useState<boolean>(true);
+  const [activeDomain, setActiveDomain] = useState<string>(getActiveDomain());
+  const [qrSizePx, setQrSizePx] = useState<number>(() => getSavedQrSize());
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
@@ -44,23 +58,34 @@ export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) =
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
 
   useEffect(() => {
-    const unsub = subscribePwaInstallAvailability((available) => {
+    const unsubPwa = subscribePwaInstallAvailability((available) => {
       setCanInstallPwa(available);
     });
-    return () => unsub();
+    const unsubDomain = subscribeDomainChanges((newDomain) => {
+      setActiveDomain(newDomain);
+    });
+    return () => {
+      unsubPwa();
+      unsubDomain();
+    };
   }, []);
 
   const selectedSection = SHARE_SECTIONS.find((s) => s.id === selectedSectionId) || SHARE_SECTIONS[0];
-  const baseUrl = useOfficialDomain ? OFFICIAL_DOMAIN : getBaseShareUrl();
+  const baseUrl = useOfficialDomain ? activeDomain : getBaseShareUrl();
   const fullShareUrl = selectedSection.path === '/' ? baseUrl : `${baseUrl}${selectedSection.path}`;
 
-  // Generate QR code whenever the URL changes
+  const handleSelectQrSize = (size: number) => {
+    setQrSizePx(size);
+    setSavedQrSize(size);
+  };
+
+  // Generate QR code whenever the URL or size changes
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
 
     generateQrDataUrl(fullShareUrl, {
-      width: 480,
+      width: Math.max(qrSizePx * 1.5, 360),
       colorDark: '#0f172a',
       colorLight: '#ffffff',
     })
@@ -78,7 +103,7 @@ export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) =
     return () => {
       isMounted = false;
     };
-  }, [fullShareUrl]);
+  }, [fullShareUrl, qrSizePx]);
 
   const handleCopy = async () => {
     try {
@@ -153,7 +178,34 @@ export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) =
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {onOpenCustomDomain && (
+                <button
+                  type="button"
+                  onClick={onOpenCustomDomain}
+                  className="flex items-center gap-1 text-[11px] font-bold text-amber-300 hover:text-yellow-200 bg-slate-900 hover:bg-slate-800 px-2.5 py-1 rounded-lg border border-amber-500/40 transition-colors cursor-pointer"
+                  title="Cambiar dominio vigente de la app"
+                >
+                  <Globe className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Dominio:</span>
+                  <span className="font-mono text-white text-[10px] truncate max-w-[120px]">
+                    {activeDomain.replace(/^https?:\/\//, '')}
+                  </span>
+                </button>
+              )}
+
+              {onOpenVisualCatalog && (
+                <button
+                  type="button"
+                  onClick={onOpenVisualCatalog}
+                  className="flex items-center gap-1 text-[11px] font-bold text-white bg-orange-600 hover:bg-orange-500 px-2.5 py-1 rounded-lg shadow-xs transition-colors cursor-pointer"
+                  title="Abrir catálogo visual con fotos y lookbook"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Catálogo Visual 📸</span>
+                </button>
+              )}
+
               {onOpenFullModal && (
                 <button
                   type="button"
@@ -206,8 +258,15 @@ export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) =
                     <div className="absolute bottom-2 left-2 w-5 h-5 border-b-4 border-l-4 border-orange-600 rounded-bl-sm pointer-events-none"></div>
                     <div className="absolute bottom-2 right-2 w-5 h-5 border-b-4 border-r-4 border-orange-600 rounded-br-sm pointer-events-none"></div>
 
-                    {/* QR Code Canvas / Image - Big & Scannable */}
-                    <div className="relative w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center bg-white">
+                    {/* QR Code Canvas / Image - Dynamic Size according to qrSizePx */}
+                    <div
+                      style={{
+                        width: `${Math.min(qrSizePx, 280)}px`,
+                        height: `${Math.min(qrSizePx, 280)}px`,
+                        maxWidth: '100%',
+                      }}
+                      className="relative flex items-center justify-center bg-white transition-all duration-300"
+                    >
                       {isLoading ? (
                         <div className="flex flex-col items-center gap-2 text-slate-400 text-xs font-bold animate-pulse">
                           <QrCode className="w-10 h-10 text-orange-500 animate-spin" />
@@ -239,6 +298,34 @@ export const TopQrScanner: React.FC<TopQrScannerProps> = ({ onOpenFullModal }) =
                       <p className="text-[10px] text-slate-500 font-semibold">
                         Compatible con iPhone, Android &amp; Google Lens
                       </p>
+                    </div>
+
+                    {/* QR Size Selector Controls */}
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 w-full flex flex-col items-center gap-1.5">
+                      <div className="flex items-center justify-between w-full text-[10px] font-black uppercase text-slate-500">
+                        <span className="flex items-center gap-1 text-slate-700">
+                          <Sliders className="w-3 h-3 text-orange-600" />
+                          Tamaño de QR:
+                        </span>
+                        <span className="text-orange-600 font-mono font-black">{qrSizePx}px</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1 w-full">
+                        {QR_SIZE_PRESETS.map((sz) => (
+                          <button
+                            key={sz.id}
+                            type="button"
+                            onClick={() => handleSelectQrSize(sz.dimensionPx)}
+                            className={`py-1 px-1 text-[10px] font-black rounded-lg transition-all cursor-pointer text-center ${
+                              qrSizePx === sz.dimensionPx
+                                ? 'bg-orange-600 text-white shadow-xs'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            }`}
+                            title={sz.description}
+                          >
+                            {sz.id.toUpperCase()} ({sz.dimensionPx}px)
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Copy,
   Check,
@@ -17,10 +17,13 @@ import {
   Flame,
   ShieldCheck,
   RefreshCw,
-  Cpu
+  Cpu,
+  Tag
 } from 'lucide-react';
 import { Product } from '../types';
 import { INITIAL_PRODUCTS } from '../data/mockData';
+import { ProductSeoEditorPanel } from './ProductSeoEditorPanel';
+import { getProductSeoData, getAllStoredSeoOverrides, PRODUCT_SEO_CHANGED_EVENT } from '../services/productSeoService';
 
 interface GoogleSitesSEOToolkitProps {
   products?: Product[];
@@ -35,8 +38,17 @@ export const GoogleSitesSEOToolkit: React.FC<GoogleSitesSEOToolkitProps> = ({
   const [copiedEmbedWidget, setCopiedEmbedWidget] = useState(false);
   const [copiedSitemap, setCopiedSitemap] = useState(false);
   const [copiedRobots, setCopiedRobots] = useState(false);
-  const [activeTab, setActiveTab] = useState<'sitemap' | 'robots' | 'fullhtml' | 'iframe' | 'meta' | 'widget'>('sitemap');
+  const [activeTab, setActiveTab] = useState<'productMeta' | 'sitemap' | 'robots' | 'fullhtml' | 'iframe' | 'meta' | 'widget'>('productMeta');
   const [userVerificationCode, setUserVerificationCode] = useState('petsimona25_gsc_token_123456');
+  const [seoRefreshTrigger, setSeoRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleSeoChanged = () => {
+      setSeoRefreshTrigger((prev) => prev + 1);
+    };
+    window.addEventListener(PRODUCT_SEO_CHANGED_EVENT, handleSeoChanged);
+    return () => window.removeEventListener(PRODUCT_SEO_CHANGED_EVENT, handleSeoChanged);
+  }, []);
 
   const defaultDomain = 'https://petsimona25.cl';
   const currentAppUrl = typeof window !== 'undefined' ? window.location.origin : defaultDomain;
@@ -134,15 +146,20 @@ ${products
   .map((p) => {
     const isAvail = p.inStock && (p.stock === undefined || p.stock > 0);
     const priority = isAvail ? '0.90' : '0.60';
+    const pSeo = getProductSeoData(p, cleanDomain);
+    const photoUrl = pSeo.ogImage || p.imageUrl;
+    const titleText = pSeo.title || p.name;
+    const descText = pSeo.description || p.description;
+    const lastModDate = pSeo.lastModified || todayDate;
     return `  <url>
     <loc>${cleanDomain}/#catalogo?articulo=${encodeURIComponent(p.id)}</loc>
-    <lastmod>${todayDate}</lastmod>
+    <lastmod>${lastModDate}</lastmod>
     <changefreq>daily</changefreq>
     <priority>${priority}</priority>
     <image:image>
-      <image:loc>${escapeXml(p.imageUrl)}</image:loc>
-      <image:title>${escapeXml(p.name)}</image:title>
-      <image:caption>${escapeXml(p.description)}</image:caption>
+      <image:loc>${escapeXml(photoUrl)}</image:loc>
+      <image:title>${escapeXml(titleText)}</image:title>
+      <image:caption>${escapeXml(descText)}</image:caption>
     </image:image>
   </url>`;
   })
@@ -441,6 +458,20 @@ Sitemap: ${cleanDomain}/sitemap.xml
                 <span className="text-xs font-black text-yellow-300">100% Incluidas</span>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('productMeta')}
+              className="bg-slate-900 hover:bg-slate-800 border border-amber-500/50 px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all text-left"
+              title="Ir al Editor de Meta Tags por Producto para Search Console"
+            >
+              <Tag className="w-4 h-4 text-amber-400" />
+              <div>
+                <span className="text-[10px] text-slate-400 block leading-none">Meta Tags de Productos:</span>
+                <span className="text-xs font-black text-amber-300">
+                  {Object.keys(getAllStoredSeoOverrides()).length} editadas (Abrir)
+                </span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -453,13 +484,13 @@ Sitemap: ${cleanDomain}/sitemap.xml
               </div>
               <div>
                 <h3 className="text-xl font-black text-white flex items-center gap-2">
-                  <span>Generador de Archivos de Indexación SEO</span>
+                  <span>Generador de Archivos de Indexación SEO &amp; Meta Tags</span>
                   <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-amber-500/40">
-                    Sitemap &amp; Robots
+                    Sitemap, Robots &amp; GSC
                   </span>
                 </h3>
                 <p className="text-xs text-slate-300 font-medium">
-                  Copia o descarga los archivos necesarios para Google Search Console y el posicionamiento de tus productos
+                  Copia o descarga los archivos necesarios para Google Search Console y personaliza las meta tags de cada prenda individual
                 </p>
               </div>
             </div>
@@ -491,6 +522,21 @@ Sitemap: ${cleanDomain}/sitemap.xml
 
           {/* Format Tabs */}
           <div className="flex flex-wrap gap-2 border-b border-slate-700 pb-3">
+            <button
+              onClick={() => setActiveTab('productMeta')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'productMeta'
+                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 text-slate-950 shadow-lg ring-2 ring-yellow-300 scale-102'
+                  : 'bg-slate-900 text-amber-300 hover:bg-slate-700 border border-amber-500/40'
+              }`}
+            >
+              <Tag className="w-4 h-4 text-amber-300" />
+              <span>★ Editor Meta Tags por Prenda 🏷️</span>
+              <span className="text-[10px] bg-slate-950 text-yellow-300 px-2 py-0.2 rounded-full font-black border border-amber-400/50">
+                GSC
+              </span>
+            </button>
+
             <button
               onClick={() => setActiveTab('sitemap')}
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
@@ -566,6 +612,15 @@ Sitemap: ${cleanDomain}/sitemap.xml
 
           {/* Active Tab View */}
           <div className="space-y-4">
+            {/* Product Dynamic Meta Tags Editor Tab */}
+            {activeTab === 'productMeta' && (
+              <ProductSeoEditorPanel
+                products={products}
+                currentDomain={cleanDomain}
+                onSeoUpdated={() => setSeoRefreshTrigger((prev) => prev + 1)}
+              />
+            )}
+
             {/* Sitemap.xml Tab */}
             {activeTab === 'sitemap' && (
               <div className="space-y-4">

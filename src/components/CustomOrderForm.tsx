@@ -243,9 +243,9 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
       }
     }
 
-    // 6. Embroidery Validation
+    // 6. Embroidery/Stamping Validation
     if (embText && embText.trim().length > 25) {
-      newErrors.embroideryText = 'El texto de bordado no puede exceder 25 caracteres.';
+      newErrors.embroideryText = 'El texto de estampado no puede exceder 25 caracteres.';
     }
 
     return newErrors;
@@ -486,7 +486,7 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
                     {errors.neck && <li>Medida de Cuello: {errors.neck}</li>}
                     {errors.chest && <li>Medida de Pecho: {errors.chest}</li>}
                     {errors.bodyLength && <li>Medida de Largo de Cuerpo: {errors.bodyLength}</li>}
-                    {errors.embroideryText && <li>Bordado: {errors.embroideryText}</li>}
+                    {errors.embroideryText && <li>Estampado: {errors.embroideryText}</li>}
                   </ul>
                 </div>
               </div>
@@ -1221,10 +1221,10 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
                   </select>
                 </div>
 
-                {/* Embroidery Name */}
+                {/* Stamping Name */}
                 <div id="field-embroideryText" className="space-y-1.5">
                   <label className="text-xs font-black text-slate-900 uppercase flex justify-between">
-                    <span>Nombre Bordado (Opcional)</span>
+                    <span>Nombre Estampado Personalizado (Opcional)</span>
                     <span className="text-orange-600 font-extrabold">+$4.000 CLP</span>
                   </label>
                   <input
@@ -1275,7 +1275,7 @@ export const CustomOrderForm: React.FC<CustomOrderFormProps> = ({ onAddToCart })
                   <p className="font-black text-base text-slate-900">
                     Total Confección a la Medida: $
                     {currentPrice.toLocaleString('es-CL')} CLP
-                    {embroideryText.trim() && ' (Incluye Bordado)'}
+                    {embroideryText.trim() && ' (Incluye Estampado)'}
                   </p>
                   <p className="font-semibold text-slate-500">
                     Tiempo de confección artesanal en Rengo: 2 a 3 días hábiles.

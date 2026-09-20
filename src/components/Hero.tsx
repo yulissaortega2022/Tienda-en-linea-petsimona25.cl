@@ -10,6 +10,8 @@ import salchichaImg from '../assets/images/salchicha_dog_photo_1789595194154.jpg
 
 interface HeroProps {
   onOpenShareQr?: (tab?: 'qr' | 'apk') => void;
+  onOpenCustomDomain?: () => void;
+  onOpenVisualCatalog?: () => void;
 }
 
 export type FeaturedBreedKey = 'yorkshire' | 'chihuahua' | 'foxterrier' | 'galgo' | 'salchicha';
@@ -90,7 +92,11 @@ const BREED_SPOTLIGHTS: BreedHeroSpotlight[] = [
   },
 ];
 
-export const Hero: React.FC<HeroProps> = ({ onOpenShareQr }) => {
+export const Hero: React.FC<HeroProps> = ({
+  onOpenShareQr,
+  onOpenCustomDomain,
+  onOpenVisualCatalog,
+}) => {
   const [selectedBreed, setSelectedBreed] = useState<FeaturedBreedKey>('yorkshire');
   const currentSpotlight = BREED_SPOTLIGHTS.find((b) => b.id === selectedBreed) || BREED_SPOTLIGHTS[0];
 
@@ -102,7 +108,11 @@ export const Hero: React.FC<HeroProps> = ({ onOpenShareQr }) => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Top High-Impact Scannable QR Code Banner */}
-        <TopQrScanner onOpenFullModal={onOpenShareQr} />
+        <TopQrScanner
+          onOpenFullModal={onOpenShareQr}
+          onOpenCustomDomain={onOpenCustomDomain}
+          onOpenVisualCatalog={onOpenVisualCatalog}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           {/* Left Hero Content */}
@@ -118,15 +128,20 @@ export const Hero: React.FC<HeroProps> = ({ onOpenShareQr }) => {
                 <span className="text-slate-300">• Confección Ergonómica 100%</span>
               </div>
 
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white shadow-lg border-2 border-yellow-300 ring-2 ring-orange-500/30 animate-pulse">
-                <Flame className="w-4 h-4 fill-yellow-300 text-yellow-300 shrink-0" />
+              <a
+                href="#medidas-form"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg border-2 border-yellow-300 ring-2 ring-orange-500/30 transition-all transform hover:scale-102 active:scale-95 group cursor-pointer"
+                title="Quedan 4 cupos disponibles esta semana - Clic para registrarte en el formulario a la medida"
+              >
+                <Flame className="w-4 h-4 fill-yellow-300 text-yellow-300 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="text-xs sm:text-sm font-black text-yellow-300 tracking-tight uppercase">
-                  4 CUPOS ESTA SEMANA
+                  4 CUPOS DISPONIBLES
                 </span>
-                <span className="text-[11px] sm:text-xs font-bold text-white hidden sm:inline">
-                  hecho a mano en Rengo 🔥
+                <span className="text-[11px] sm:text-xs font-black bg-yellow-400 text-slate-950 px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-xs group-hover:bg-yellow-300 transition-colors">
+                  Registrarse en el formulario ✍️
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </span>
-              </div>
+              </a>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.15]">

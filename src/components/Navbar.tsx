@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Sparkles, Settings, Dog, Instagram, Facebook, Globe, Menu, X, Scissors, Truck, Search, Bell, ShieldCheck, Zap, Lock, Palette, QrCode, Smartphone, Share2 } from 'lucide-react';
+import { ShoppingBag, Sparkles, Settings, Dog, Instagram, Facebook, Globe, Menu, X, Scissors, Truck, Search, Bell, ShieldCheck, Zap, Lock, Palette, QrCode, Smartphone, Share2, Camera, Flame } from 'lucide-react';
 import { PaymentCredentials } from '../types';
 import { getActiveBrandLogo, BRAND_LOGO_CHANGED_EVENT, BrandLogoOption } from '../services/brandLogoService';
 
@@ -12,6 +12,8 @@ interface NavbarProps {
   onOpenNotificationCenter?: () => void;
   onOpenBrandLogoModal?: () => void;
   onOpenShareQr?: (tab?: 'qr' | 'apk') => void;
+  onOpenVisualCatalog?: () => void;
+  onOpenCustomDomain?: () => void;
   unreadNotificationCount?: number;
   currency: 'CLP' | 'USD' | 'MXN' | 'COP';
   onChangeCurrency: (curr: 'CLP' | 'USD' | 'MXN' | 'COP') => void;
@@ -27,6 +29,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNotificationCenter,
   onOpenBrandLogoModal,
   onOpenShareQr,
+  onOpenVisualCatalog,
+  onOpenCustomDomain,
   unreadNotificationCount = 0,
   currency,
   onChangeCurrency,
@@ -49,7 +53,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white px-4 py-1.5 text-xs font-bold border-b border-slate-800">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
           {/* Trust Guarantee & Free Shipping Trigger */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <a
+              href="#medidas-form"
+              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full border border-yellow-300 shadow-xs transition-all cursor-pointer animate-pulse"
+              title="Quedan 4 cupos disponibles - Clic para registrarte en el formulario a la medida"
+            >
+              <Flame className="w-3.5 h-3.5 fill-yellow-300 text-yellow-300 shrink-0" />
+              <span className="text-yellow-200">¡4 CUPOS DISPONIBLES!</span>
+              <span className="hidden sm:inline text-white font-bold">Registrarse en el formulario ✍️</span>
+            </a>
+            <span className="hidden sm:inline text-slate-500">•</span>
             <span className="flex items-center gap-1.5 font-black text-amber-400">
               <Zap className="w-3.5 h-3.5 fill-amber-400" />
               <span>ENVÍO GRATIS sobre $45.000</span>
@@ -62,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden lg:inline text-slate-500">•</span>
             <span className="hidden lg:flex items-center gap-1 text-slate-300 text-[11px]">
               <Dog className="w-3 h-3 text-orange-400" />
-              Taller Artesanal Rengo, Chile
+              Taller Rengo
             </span>
           </div>
 
@@ -223,6 +237,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
+          {/* Visual Catalog Trigger */}
+          {onOpenVisualCatalog && (
+            <button
+              type="button"
+              onClick={onOpenVisualCatalog}
+              className="px-3 py-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black rounded-full text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              title="Generar y ver Catálogo Visual con fotos reales y QR"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Catálogo Visual 📸</span>
+            </button>
+          )}
+
           {/* QR & APK Trigger in Nav */}
           {onOpenShareQr && (
             <button
@@ -233,6 +260,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <QrCode className="w-3.5 h-3.5 text-amber-700" />
               <span>QR / APK</span>
+            </button>
+          )}
+
+          {/* Custom Domain Trigger */}
+          {onOpenCustomDomain && (
+            <button
+              type="button"
+              onClick={onOpenCustomDomain}
+              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold rounded-full border border-slate-700 text-xs flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+              title="Configurar y cambiar dominio personalizado petsimona25"
+            >
+              <Globe className="w-3 h-3 text-amber-400" />
+              <span>Dominio</span>
             </button>
           )}
         </nav>
@@ -388,6 +428,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+            {onOpenVisualCatalog && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenVisualCatalog();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Generar Catálogo Visual (Fotos &amp; QR) 📸</span>
+              </button>
+            )}
+
             {onOpenShareQr && (
               <button
                 type="button"
@@ -399,6 +453,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <QrCode className="w-4 h-4" />
                 <span>Compartir Código QR &amp; App APK 📲</span>
+              </button>
+            )}
+
+            {onOpenCustomDomain && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenCustomDomain();
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 text-amber-300 border border-slate-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Globe className="w-4 h-4 text-amber-400" />
+                <span>Cambiar Dominio Vigente (petsimona25) 🌐</span>
               </button>
             )}
 

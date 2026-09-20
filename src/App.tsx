@@ -30,6 +30,8 @@ import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { BrandLogoModal } from './components/BrandLogoModal';
 import { ShareQrModal } from './components/ShareQrModal';
+import { VisualCatalogModal } from './components/VisualCatalogModal';
+import { CustomDomainModal } from './components/CustomDomainModal';
 
 import { INITIAL_PRODUCTS, INITIAL_REVIEWS, DEFAULT_PAYMENT_CREDENTIALS, INITIAL_ORDERS, AdminOrder } from './data/mockData';
 import { Product, Review, CartItem, CustomOrderItem, PaymentCredentials, PetMeasurements, PushNotificationItem } from './types';
@@ -159,6 +161,12 @@ export default function App() {
     setShareQrDefaultTab(tab);
     setIsShareQrModalOpen(true);
   };
+
+  // Visual Lookbook Catalog Modal State
+  const [isVisualCatalogOpen, setIsVisualCatalogOpen] = useState(false);
+
+  // Custom Domain Modal State (petsimona25)
+  const [isCustomDomainModalOpen, setIsCustomDomainModalOpen] = useState(false);
 
   // Shipment Tracking State
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
@@ -594,6 +602,8 @@ export default function App() {
         onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)}
         onOpenBrandLogoModal={() => setIsBrandLogoModalOpen(true)}
         onOpenShareQr={handleOpenShareQr}
+        onOpenVisualCatalog={() => setIsVisualCatalogOpen(true)}
+        onOpenCustomDomain={() => setIsCustomDomainModalOpen(true)}
         unreadNotificationCount={unreadNotificationCount}
         currency={currency}
         onChangeCurrency={setCurrency}
@@ -623,7 +633,11 @@ export default function App() {
 
       <main>
         {/* Hero Section */}
-        <Hero onOpenShareQr={handleOpenShareQr} />
+        <Hero
+          onOpenShareQr={handleOpenShareQr}
+          onOpenCustomDomain={() => setIsCustomDomainModalOpen(true)}
+          onOpenVisualCatalog={() => setIsVisualCatalogOpen(true)}
+        />
 
         {/* Story Section - Founder from Maipú to Rengo, ecological reusable materials */}
         <StorySection />
@@ -878,6 +892,30 @@ export default function App() {
         isOpen={isShareQrModalOpen}
         onClose={() => setIsShareQrModalOpen(false)}
         defaultTab={shareQrDefaultTab}
+        onOpenCustomDomain={() => {
+          setIsShareQrModalOpen(false);
+          setIsCustomDomainModalOpen(true);
+        }}
+        onOpenVisualCatalog={() => {
+          setIsShareQrModalOpen(false);
+          setIsVisualCatalogOpen(true);
+        }}
+      />
+
+      {/* Visual Catalog Lookbook Modal */}
+      <VisualCatalogModal
+        isOpen={isVisualCatalogOpen}
+        onClose={() => setIsVisualCatalogOpen(false)}
+        products={products}
+      />
+
+      {/* Custom Domain Management Modal (petsimona25) */}
+      <CustomDomainModal
+        isOpen={isCustomDomainModalOpen}
+        onClose={() => setIsCustomDomainModalOpen(false)}
+        onDomainChanged={() => {
+          showToast('🌐 Dominio activo actualizado en toda la tienda.');
+        }}
       />
     </div>
   );

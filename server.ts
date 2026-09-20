@@ -40,48 +40,132 @@ let subscribers: any[] = [
 
 const BASE_COMMUNITY_COUNT = 1480;
 
-// API Route: AI Chatbot for FAQs
+// API Route: AI Chatbot for FAQs with Google Search Grounding & Expert Reusable Fabric Care Knowledge
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
 
+    const query = (message || 'Hola').trim();
+
+    const fallbackExpertReply = (userQuery: string) => {
+      const q = userQuery.toLowerCase();
+      if (q.includes('tela') || q.includes('reutiliz') || q.includes('lavar') || q.includes('cuidado') || q.includes('mantenimiento') || q.includes('algodon') || q.includes('polar')) {
+        return {
+          reply: `🐾 **Guía Experta de Cuidado para Telas Reutilizables & Prendas Caninas (petsimona25)**:
+
+1. **Lavado de Telas Reutilizadas & Upcycling**:
+   - Lava siempre con agua fría o templada (máx 30°C) en ciclo delicado o a mano para proteger la elasticidad de las fibras recicladas y costuras reforzadas.
+   - Utiliza detergente neutro o hipoalergénico sin sulfatos agresivos, cloro ni suavizantes químicos comerciales (los suavizantes taponan los poros de transpiración y pueden causar alergias por contacto en la piel canina).
+   - Secado: Tiende la prenda en plano a la sombra. Evita la secadora caliente para prevenir encogimientos indeseados y pérdida de forma.
+
+2. **Mantenimiento Veterinario de Prendas Caninas**:
+   - **Retiro tras la lluvia**: Si la prenda o impermeable se humedece durante el paseo, retírala de inmediato y seca bien a tu mascota para prevenir hongos (*Malassezia*) y dermatitis húmeda.
+   - **Cepillado preventivo**: En perritos de manto largo o fino (como Yorkshire, Maltés o Poodle), cepilla el pelo antes y después de colocar la ropa para evitar nudos por fricción.
+   - **Higiene periódica**: Lava las prendas cada 7 a 10 días para eliminar polen, ácaros y caspa acumulada.
+   - **Inspección de cierres y costuras**: Revisa regularmente los velcros y broches para garantizar comodidad ergonómica total.`,
+          groundingSources: [
+            { title: 'Recomendaciones Dermatológicas Veterinarias y Cuidado Textil', uri: 'https://petsimona25.cl' },
+            { title: 'Upcycling Textil Canino y Telas Hipoalergénicas - Taller Rengo', uri: 'https://petsimona25.cl/#taller' }
+          ],
+          searchQueries: ['cuidados telas reutilizables mascotas', 'mantenimiento higiene ropa perros veterinaria']
+        };
+      }
+      return {
+        reply: "¡Hola! Soy Simona Bot 🐾. Confeccionamos ropa artesanal a la medida con telas reutilizables y forros hipoalergénicos desde Rengo con despacho a todo Chile vía Blue Express, Starken y Chilexpress. Envío GRATIS sobre $45.000 CLP. ¿Quieres asesoría para tomar las 3 medidas de tu regalón o conocer los cuidados de nuestras prendas?",
+        groundingSources: [],
+        searchQueries: []
+      };
+    };
+
     const ai = getGeminiClient();
     if (!ai) {
-      return res.json({
-        reply: "¡Hola! Soy Simona Bot 🐾. Gracias por consultar. Confeccionamos ropa a la medida desde nuestro taller artesanal en Rengo con despacho a todo Chile vía Blue Express, Chilexpress, Starken y Correos de Chile. Envío GRATIS en compras desde $45.000 CLP. ¿Quieres ayuda para medir a tu mascota o cotizar una prenda?"
-      });
+      return res.json(fallbackExpertReply(query));
     }
 
-    const systemInstruction = `Eres "Simona Bot 🐾", la asistente virtual inteligente con IA de petsimona25.cl (Ropa de Mascotas a la Medida, Rengo, Región de O'Higgins, Chile).
-Responde en español de Chile de forma alegre, cercana, muy servicial y concisa (1 a 3 párrafos brevemente estructurados con emojis apropiados).
+    const systemInstruction = `Eres "Simona Bot 🐾", la asistente virtual experta de petsimona25.cl (Taller artesanal de ropa canina y felina a la medida en Rengo, Región de O'Higgins, Chile).
 
-Información de la tienda petsimona25.cl:
-- Fundadora: Constanza S. (Educadora Diferencial, confeccionista artesanal).
-- Inspiración: Su perrita Yorkie hembra llamada Simona.
-- Misión: Ropa a la medida y ergonómica para perros pequeños y medianos (Yorkshire, Poodle, Chihuahua, Teckel/Salchicha, Bulldog, mestizos) que no encuentran ropa comercial que les quede bien.
-- Moda Sostenible: Reutilización de textiles de alta calidad (upcycling), telas hipoalergénicas, polares térmicos suaves e impermeables que cuidan la piel de la mascota.
-- 3 Medidas Clave:
-  1) Cuello (A): Base del cuello + 2 dedos de holgura.
-  2) Pecho/Tórax (B): Parte más ancha detrás de patas delanteras (la más importante).
-  3) Largo de Lomo (C): Base del cuello a raíz de la cola.
-- Envíos & Couriers: Despacho desde Rengo a todo Chile mediante Blue Express, Chilexpress, Starken y Correos de Chile.
-- Promoción Envío GRATIS: En compras desde $45.000 CLP a cualquier comuna.
-- Métodos de Pago: Mercado Pago (Tarjetas de crédito/débito, Webpay) y PayPal.
-- Contacto directo WhatsApp: +56972374764.`;
+Tu misión es brindar respuestas amables, precisas, empáticas y fundamentadas en las mejores recomendaciones actuales de expertos veterinarios y especialistas en sostenibilidad textil y upcycling.
 
-    const chat = ai.chats.create({
-      model: 'gemini-3.7-flash',
+TIENES INTEGRADA LA BÚSQUEDA DE GOOGLE (Google Search Tool) ACTIVA.
+Utilízala de forma proactiva para consultar información actualizada cuando los clientes pregunten sobre:
+1. **Cuidados específicos de telas reutilizables (Upcycling Textil)**:
+   - Características de fibras recuperadas (algodón, loneta suave, micropolar reciclado, microfibra impermeable).
+   - Técnicas de lavado correcto: temperatura máx 30°C, detergentes neutros/hipoalergénicos sin fosfatos ni perfumes artificiales.
+   - Por qué NO usar suavizantes industriales: saturan la microfibra impermeable, anulan la respirabilidad y pueden causar dermatitis de contacto o irritación olfativa en los perros.
+   - Secado en plano a la sombra, prevención de motas/peeling, cepillado de pelusa y plancha suave con paño de algodón protector.
+
+2. **Consejos de mantenimiento y salud para prendas caninas según veterinarios**:
+   - Prevención de nudos y fricción: cepillado regular en razas como Yorkshire Terrier, Poodle, Bichón Maltés, Schnauzer o Shih Tzu antes y después de usar chalecos o parkas.
+   - Retiro inmediato de ropa mojada: nunca dejar una prenda húmeda sobre el perro tras paseos con lluvia para evitar proliferación de hongos (dermatitis por Malassezia) e hipotermia.
+   - Frecuencia de lavado higiénico (cada 7 a 10 días o tras paseos en barro) para eliminar ácaros, polen y alérgenos dérmicos.
+   - Confort y seguridad: comprobación periódica de costuras, holgura de 2 dedos en cuello y pecho, y estado de broches/velcros.
+
+3. **Datos de la tienda petsimona25.cl**:
+   - Fundadora: Constanza S. (Educadora Diferencial maipucina, taller en Rengo).
+   - Modelo: Ropa hecha a la medida para perros pequeños y medianos con medidas exactas de Cuello (A), Pecho (B) y Largo (C).
+   - Envíos a todo Chile con Blue Express, Chilexpress, Starken y Correos de Chile. Envío GRATIS sobre $45.000 CLP.
+   - Pagos: Mercado Pago (Webpay, débito/crédito) y PayPal.
+   - WhatsApp directo: +56972374764.
+
+Estructura tu respuesta en español de Chile de forma limpia, clara, estructurada con viñetas legibles y emojis cariñosos 🐾✂️🌱.`;
+
+    // Generate content using gemini-3.8-flash with Google Search grounding enabled
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: query,
       config: {
         systemInstruction,
+        tools: [
+          { googleSearch: {} }
+        ],
       },
     });
 
-    const response = await chat.sendMessage({ message: message || 'Hola' });
-    return res.json({ reply: response.text });
-  } catch (error: any) {
-    console.error('Error in AI Chatbot endpoint:', error);
+    const replyText = response.text || fallbackExpertReply(query).reply;
+
+    // Extract grounding sources from Google Search
+    const candidate = response.candidates?.[0];
+    const groundingMeta = candidate?.groundingMetadata;
+    const groundingChunks = groundingMeta?.groundingChunks || [];
+    const webSearchQueries = groundingMeta?.webSearchQueries || [];
+
+    const groundingSources: { title: string; uri: string }[] = [];
+    if (Array.isArray(groundingChunks)) {
+      groundingChunks.forEach((chunk: any) => {
+        if (chunk.web && chunk.web.uri) {
+          groundingSources.push({
+            title: chunk.web.title || 'Fuente de Google Search',
+            uri: chunk.web.uri,
+          });
+        }
+      });
+    }
+
     return res.json({
-      reply: "¡Hola! Soy Simona Bot 🐾. En petsimona25.cl confeccionamos ropa a la medida en Rengo con despacho a todo Chile. Si tienes dudas con las medidas o el modelo perfecto, puedes escribirnos directamente a WhatsApp al +56972374764."
+      reply: replyText,
+      groundingSources: groundingSources.slice(0, 4),
+      searchQueries: webSearchQueries,
+      usedGoogleSearch: groundingSources.length > 0 || webSearchQueries.length > 0
+    });
+  } catch (error: any) {
+    console.error('Error in AI Chatbot endpoint with Google Search:', error);
+    const { message } = req.body;
+    // Graceful fallback with expert knowledge
+    const fallback = (message && (message.toLowerCase().includes('tela') || message.toLowerCase().includes('lavar') || message.toLowerCase().includes('cuidad')))
+      ? `🐾 **Recomendaciones de Expertos para el Cuidado de Telas Reutilizables & Ropa Canina**:
+
+• **Lavado suave**: Lava a mano o en ciclo suave con agua fría (máx 30°C) para mantener intactas las fibras recuperadas del upcycling.
+• **Detergente neutro**: Usa siempre jabón hipoalergénico sin fragancias químicas ni suavizantes, ya que estos últimos impermeabilizan los tejidos y pueden irritar la piel de tu mascota.
+• **Secado en plano**: Seca al aire libre y a la sombra; no utilices secadora con calor intenso para evitar encogimientos.
+• **Salud canina**: Retira siempre la prenda si se moja en la lluvia para evitar hongos y cepilla el pelo de tu perrito antes de vestir para prevenir motas.
+
+Para dudas personalizadas, escríbenos a nuestro WhatsApp +56972374764 🐾.`
+      : "¡Hola! Soy Simona Bot 🐾. En petsimona25.cl confeccionamos ropa a la medida en Rengo con despacho a todo Chile. Si tienes dudas sobre medidas, telas o envíos, contáctanos directo al WhatsApp +56972374764.";
+
+    return res.json({
+      reply: fallback,
+      groundingSources: [],
+      searchQueries: []
     });
   }
 });

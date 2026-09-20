@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { Product } from '../types';
+import { getActiveCustomDomain } from './customDomainService';
 
 export interface CatalogOptions {
   onlyInStock?: boolean;
@@ -25,7 +26,7 @@ export async function generateProductCatalogPDF(
     includeCustomTailoringNotice = true,
     promoDiscountText = '',
     contactPhone = '+56 9 7237 4764',
-    websiteUrl = 'www.petsimona25.cl',
+    websiteUrl = options.websiteUrl || getActiveCustomDomain(),
     ownerName = 'petsimona25 Taller Artesanal',
   } = options;
 

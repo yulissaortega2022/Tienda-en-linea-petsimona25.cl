@@ -18,6 +18,7 @@ import {
   Truck,
   Home,
   CheckCircle2,
+  Sliders,
 } from 'lucide-react';
 import {
   SHARE_SECTIONS,
@@ -29,23 +30,33 @@ import {
   promptPwaInstall,
   isAppAlreadyInstalled,
   downloadAndroidLauncherPackage,
+  QR_SIZE_PRESETS,
+  getSavedQrSize,
+  setSavedQrSize,
 } from '../services/shareQrService';
+import { getActiveDomain, subscribeDomainChanges } from '../services/customDomainService';
 import pwaWebApkBanner from '../assets/images/pet_apparel_pwa_1789670605527.jpg';
 
 interface ShareQrModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'qr' | 'apk';
+  onOpenCustomDomain?: () => void;
+  onOpenVisualCatalog?: () => void;
 }
 
 export const ShareQrModal: React.FC<ShareQrModalProps> = ({
   isOpen,
   onClose,
   defaultTab = 'qr',
+  onOpenCustomDomain,
+  onOpenVisualCatalog,
 }) => {
   const [activeTab, setActiveTab] = useState<'qr' | 'apk'>(defaultTab);
   const [selectedSectionId, setSelectedSectionId] = useState<string>('home');
   const [useOfficialDomain, setUseOfficialDomain] = useState<boolean>(true);
+  const [activeDomain, setActiveDomain] = useState<string>(getActiveDomain());
+  const [qrSizePx, setQrSizePx] = useState<number>(() => getSavedQrSize());
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
@@ -58,29 +69,42 @@ export const ShareQrModal: React.FC<ShareQrModalProps> = ({
     if (isOpen) {
       setActiveTab(defaultTab);
       setIsInstalled(isAppAlreadyInstalled());
+      setActiveDomain(getActiveDomain());
+      setQrSizePx(getSavedQrSize());
     }
   }, [isOpen, defaultTab]);
 
-  // Track PWA install availability
+  // Track PWA install availability and custom domain changes
   useEffect(() => {
-    const unsubscribe = subscribePwaInstallAvailability((available) => {
+    const unsubscribePwa = subscribePwaInstallAvailability((available) => {
       setCanInstallPwa(available);
     });
-    return () => unsubscribe();
+    const unsubscribeDomain = subscribeDomainChanges((newDomain) => {
+      setActiveDomain(newDomain);
+    });
+    return () => {
+      unsubscribePwa();
+      unsubscribeDomain();
+    };
   }, []);
 
   // Compute selected full URL
   const selectedSection = SHARE_SECTIONS.find((s) => s.id === selectedSectionId) || SHARE_SECTIONS[0];
-  const baseUrl = useOfficialDomain ? OFFICIAL_DOMAIN : getBaseShareUrl();
+  const baseUrl = useOfficialDomain ? activeDomain : getBaseShareUrl();
   const fullShareUrl = selectedSection.path === '/' ? baseUrl : `${baseUrl}${selectedSection.path}`;
 
-  // Generate QR code whenever URL changes
+  const handleSelectQrSize = (size: number) => {
+    setQrSizePx(size);
+    setSavedQrSize(size);
+  };
+
+  // Generate QR code whenever URL, tab or size changes
   useEffect(() => {
     let isCurrent = true;
     setIsGenerating(true);
 
     generateQrDataUrl(fullShareUrl, {
-      width: 400,
+      width: Math.max(qrSizePx * 1.5, 360),
       colorDark: activeTab === 'apk' ? '#0f172a' : '#1e293b',
       colorLight: '#ffffff',
     })
@@ -97,7 +121,7 @@ export const ShareQrModal: React.FC<ShareQrModalProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, [fullShareUrl, activeTab]);
+  }, [fullShareUrl, activeTab, qrSizePx]);
 
   if (!isOpen) return null;
 
@@ -281,8 +305,15 @@ export const ShareQrModal: React.FC<ShareQrModalProps> = ({
               {/* QR Display Card */}
               <div className="bg-gradient-to-b from-amber-50/50 to-orange-50/30 rounded-2xl p-4 sm:p-6 border border-amber-200 flex flex-col sm:flex-row items-center gap-6">
                 {/* QR Canvas / Image Preview */}
-                <div className="relative group shrink-0">
-                  <div className="w-52 h-52 sm:w-56 sm:h-56 bg-white rounded-2xl p-3 shadow-md border-2 border-amber-300/80 flex items-center justify-center relative overflow-hidden">
+                <div className="relative group shrink-0 flex flex-col items-center">
+                  <div
+                    style={{
+                      width: `${Math.min(qrSizePx, 240)}px`,
+                      height: `${Math.min(qrSizePx, 240)}px`,
+                      maxWidth: '100%',
+                    }}
+                    className="bg-white rounded-2xl p-3 shadow-md border-2 border-amber-300/80 flex items-center justify-center relative overflow-hidden transition-all"
+                  >
                     {isGenerating ? (
                       <div className="flex flex-col items-center gap-2 text-slate-400">
                         <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
@@ -302,10 +333,33 @@ export const ShareQrModal: React.FC<ShareQrModalProps> = ({
                       </>
                     )}
                   </div>
-                  <div className="mt-2 text-center">
-                    <span className="text-[11px] font-bold text-amber-900 bg-amber-100/80 px-2.5 py-0.5 rounded-full inline-block">
-                      Escanea con tu cámara móvil
-                    </span>
+                  
+                  {/* QR Size Selector Buttons */}
+                  <div className="mt-2.5 w-full">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-500 mb-1">
+                      <span className="flex items-center gap-1 text-slate-700">
+                        <Sliders className="w-3 h-3 text-amber-600" />
+                        Tamaño:
+                      </span>
+                      <span className="text-amber-700 font-mono font-black">{qrSizePx}px</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1">
+                      {QR_SIZE_PRESETS.map((sz) => (
+                        <button
+                          key={sz.id}
+                          type="button"
+                          onClick={() => handleSelectQrSize(sz.dimensionPx)}
+                          className={`py-1 text-[10px] font-black rounded-lg transition-all cursor-pointer text-center ${
+                            qrSizePx === sz.dimensionPx
+                              ? 'bg-amber-600 text-white shadow-xs'
+                              : 'bg-white hover:bg-amber-50 text-slate-700 border border-amber-200'
+                          }`}
+                          title={sz.description}
+                        >
+                          {sz.id.toUpperCase()} ({sz.dimensionPx}px)
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -321,18 +375,31 @@ export const ShareQrModal: React.FC<ShareQrModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Domain Toggle (petsimona25.cl vs Current) */}
-                  <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
-                    <span className="text-slate-700 font-medium">
-                      Compartir con dominio:
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setUseOfficialDomain(!useOfficialDomain)}
-                      className="text-xs font-black text-amber-700 hover:text-amber-900 underline cursor-pointer"
-                    >
-                      {useOfficialDomain ? 'petsimona25.cl (Oficial)' : 'URL Actual de Vista'}
-                    </button>
+                  {/* Domain Selector & Customizer */}
+                  <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200 text-xs gap-2">
+                    <div className="flex items-center gap-1.5 text-slate-700 truncate">
+                      <Globe className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span className="font-mono text-slate-900 font-bold truncate">
+                        {activeDomain.replace(/^https?:\/\//, '')}
+                      </span>
+                    </div>
+                    {onOpenCustomDomain ? (
+                      <button
+                        type="button"
+                        onClick={onOpenCustomDomain}
+                        className="text-xs font-black text-amber-700 hover:text-amber-900 underline shrink-0 cursor-pointer"
+                      >
+                        Personalizar Dominio
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setUseOfficialDomain(!useOfficialDomain)}
+                        className="text-xs font-black text-amber-700 hover:text-amber-900 underline cursor-pointer"
+                      >
+                        {useOfficialDomain ? 'Oficial' : 'Vista'}
+                      </button>
+                    )}
                   </div>
 
                   {/* Action Buttons Grid */}

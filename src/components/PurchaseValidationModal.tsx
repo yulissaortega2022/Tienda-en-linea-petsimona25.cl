@@ -241,7 +241,7 @@ export const PurchaseValidationModal: React.FC<PurchaseValidationModalProps> = (
               </p>
               {report.embroideryText && (
                 <p className="text-orange-700 font-bold">
-                  <strong className="text-slate-900">Bordado Personalizado:</strong> "{report.embroideryText}" (+$4.000 CLP)
+                  <strong className="text-slate-900">Estampado Personalizado:</strong> "{report.embroideryText}" (+$4.000 CLP)
                 </p>
               )}
               <p className="pt-1 text-sm font-black text-slate-900">

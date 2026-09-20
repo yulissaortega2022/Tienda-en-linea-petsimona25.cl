@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { getActiveDomain } from './customDomainService';
 
 export interface ShareSectionOption {
   id: string;
@@ -6,6 +7,83 @@ export interface ShareSectionOption {
   description: string;
   path: string;
   iconName: string;
+}
+
+export type QrSizePreset = 'sm' | 'md' | 'lg' | 'xl' | 'custom';
+
+export interface QrSizeOption {
+  id: QrSizePreset;
+  label: string;
+  description: string;
+  dimensionPx: number;
+  badge: string;
+}
+
+export const QR_SIZE_PRESETS: QrSizeOption[] = [
+  {
+    id: 'sm',
+    label: 'Compacto (S)',
+    description: '180px • Ideal para pantallas pequeñas o tarjetas de visita',
+    dimensionPx: 180,
+    badge: '180px',
+  },
+  {
+    id: 'md',
+    label: 'Estándar (M)',
+    description: '260px • Tamaño óptimo para escaneo desde mostrador o celular',
+    dimensionPx: 260,
+    badge: '260px',
+  },
+  {
+    id: 'lg',
+    label: 'Grande (L)',
+    description: '340px • Alta visibilidad para banners y pantallas de ordenador',
+    dimensionPx: 340,
+    badge: '340px',
+  },
+  {
+    id: 'xl',
+    label: 'Gigante (XL)',
+    description: '440px • Máxima resolución para vitrinas, posters e impresiones',
+    dimensionPx: 440,
+    badge: '440px',
+  },
+];
+
+const QR_SIZE_STORAGE_KEY = 'petsimona25_qr_dimension_px';
+export const QR_SIZE_CHANGED_EVENT = 'petsimona25_qr_size_changed';
+
+/**
+ * Returns the currently preferred QR size in pixels
+ */
+export function getSavedQrSize(): number {
+  if (typeof window === 'undefined') return 260;
+  try {
+    const saved = localStorage.getItem(QR_SIZE_STORAGE_KEY);
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num) && num >= 140 && num <= 600) {
+        return num;
+      }
+    }
+  } catch (e) {}
+  return 260; // Default medium size
+}
+
+/**
+ * Saves the preferred QR size in pixels and notifies components
+ */
+export function setSavedQrSize(dimensionPx: number): void {
+  const bounded = Math.min(Math.max(dimensionPx, 140), 600);
+  try {
+    localStorage.setItem(QR_SIZE_STORAGE_KEY, bounded.toString());
+  } catch (e) {}
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(QR_SIZE_CHANGED_EVENT, { detail: bounded })
+    );
+  }
 }
 
 export const SHARE_SECTIONS: ShareSectionOption[] = [
@@ -42,11 +120,13 @@ export const SHARE_SECTIONS: ShareSectionOption[] = [
 export const OFFICIAL_DOMAIN = 'https://petsimona25.cl';
 
 /**
- * Returns the effective base URL (prefers current origin if running on web, fallback to official domain)
+ * Returns the effective base URL (prefers custom configured domain, fallback to current origin or official domain)
  */
 export function getBaseShareUrl(): string {
+  const activeCustom = getActiveDomain();
+  if (activeCustom) return activeCustom;
+
   if (typeof window !== 'undefined' && window.location.origin) {
-    // If running in local or deployed container, use origin or official domain
     return window.location.origin;
   }
   return OFFICIAL_DOMAIN;

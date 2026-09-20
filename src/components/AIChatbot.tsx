@@ -1,19 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, User, Sparkles, RefreshCw, HelpCircle, Heart, ExternalLink } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, Sparkles, RefreshCw, HelpCircle, Heart, ExternalLink, Search, CheckCircle2 } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
   sender: 'bot' | 'user';
   text: string;
   timestamp: string;
+  usedGoogleSearch?: boolean;
+  groundingSources?: { title: string; uri: string }[];
+  searchQueries?: string[];
 }
 
 const FAQ_CHIPS = [
+  "🧼 Cuidados telas reutilizables",
+  "🐕 Mantenimiento de ropa canina",
+  "🌧️ Limpieza de impermeables y polares",
+  "🌿 Evitar nudos y cuidar piel",
   "📏 ¿Cómo mido a mi perrito?",
-  "🚚 ¿Cuáles son los valores y couriers de envío?",
-  "🌱 ¿Qué es la moda sostenible e hipoalergénica?",
-  "🐶 ¿Tienen ropa para Yorkie o Salchicha?",
-  "💳 ¿Qué medios de pago aceptan?"
+  "🚚 Valores y couriers de envío",
+  "🐶 Ropa para Yorkie y Salchicha",
+  "💳 Medios de pago aceptados"
 ];
 
 export const AIChatbot: React.FC = () => {
@@ -23,7 +29,7 @@ export const AIChatbot: React.FC = () => {
     {
       id: 'welcome',
       sender: 'bot',
-      text: '¡Hola! Soy Simona Bot 🐾, tu asistente inteligente de petsimona25.cl. ¿En qué te puedo ayudar hoy? Puedes preguntarme sobre tomar medidas a tu mascota, tarifas de envío a tu comuna, moda sostenible o confección artesanal.',
+      text: '¡Hola! Soy Simona Bot 🐾, tu asistente experta de petsimona25.cl con Búsqueda de Google integrada 🔍.\n\nPuedes consultarme sobre toma de medidas, envíos, y especialmente sobre cuidados específicos de telas reutilizables y consejos de mantenimiento higiénico de prendas caninas según recomendaciones actuales de expertos.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -69,7 +75,10 @@ export const AIChatbot: React.FC = () => {
         id: `bot-${Date.now()}`,
         sender: 'bot',
         text: botReply,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        usedGoogleSearch: data.usedGoogleSearch || Boolean(data.groundingSources?.length),
+        groundingSources: data.groundingSources || [],
+        searchQueries: data.searchQueries || []
       };
 
       setMessages((prev) => [...prev, botMsg]);
@@ -169,15 +178,47 @@ export const AIChatbot: React.FC = () => {
                 )}
 
                 <div
-                  className={`max-w-[80%] p-3.5 rounded-2xl text-xs font-medium leading-relaxed ${
+                  className={`max-w-[85%] p-3.5 rounded-2xl text-xs font-medium leading-relaxed ${
                     msg.sender === 'user'
                       ? 'bg-orange-500 text-white rounded-tr-none shadow-xs'
-                      : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none shadow-xs whitespace-pre-line'
+                      : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none shadow-xs'
                   }`}
                 >
-                  {msg.text}
+                  {/* Google Search Grounding Badge for Bot Messages */}
+                  {msg.sender === 'bot' && msg.id !== 'welcome' && (
+                    <div className="mb-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-black w-fit">
+                      <Search className="w-3 h-3 text-blue-600 animate-pulse" />
+                      <span>Google Search &amp; Expertos Veterinarios</span>
+                    </div>
+                  )}
+
+                  <div className="whitespace-pre-line">{msg.text}</div>
+
+                  {/* Grounding Sources */}
+                  {msg.groundingSources && msg.groundingSources.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">
+                        Fuentes consultadas:
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {msg.groundingSources.map((src, sIdx) => (
+                          <a
+                            key={sIdx}
+                            href={src.uri}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md truncate max-w-full transition-colors"
+                          >
+                            <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">{src.title}</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <span
-                    className={`block text-[9px] mt-1 font-bold ${
+                    className={`block text-[9px] mt-1.5 font-bold ${
                       msg.sender === 'user' ? 'text-orange-100 text-right' : 'text-slate-400'
                     }`}
                   >

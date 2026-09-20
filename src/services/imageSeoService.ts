@@ -52,7 +52,7 @@ const CATEGORY_SEO_MAP: Record<Product['category'], {
   vestidos: {
     singular: 'vestido artesanal de gala y fiesta',
     plural: 'vestidos para perritas',
-    benefits: 'diseño elegante con detalles bordados y tela suave reutilizada',
+    benefits: 'diseño elegante con detalles estampados y tela suave reutilizada',
     targetPets: 'perritas chicas y medianas',
   },
   pijamas: {
